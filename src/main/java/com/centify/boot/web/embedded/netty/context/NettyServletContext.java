@@ -246,17 +246,52 @@ public class NettyServletContext implements ServletContext {
 
     @Override
     public Set<String> getResourcePaths(String path) {
-        return null;
+        Set<String> thePaths = new HashSet<>();
+        if (!path.endsWith("/")) {
+            path += "/";
+        }
+        String basePath = getRealPath(path);
+        if (basePath == null) {
+            return thePaths;
+        }
+        File theBaseDir = new File(basePath);
+        if (!theBaseDir.exists() || !theBaseDir.isDirectory()) {
+            return thePaths;
+        }
+        String theFiles[] = theBaseDir.list();
+        if (theFiles == null) {
+            return thePaths;
+        }
+        for (String filename : theFiles) {
+            File testFile = new File(basePath + File.separator + filename);
+            if (testFile.isFile())
+                thePaths.add(path + filename);
+            else if (testFile.isDirectory())
+                thePaths.add(path + filename + "/");
+        }
+        return thePaths;
     }
 
     @Override
     public URL getResource(String path) throws MalformedURLException {
-        return null;
+        if (!path.startsWith("/"))
+            throw new MalformedURLException("Path '" + path + "' does not start with '/'");
+        URL url = new URL(getClassLoader().getResource(""), path.substring(1));
+        try {
+            url.openStream();
+        } catch (Throwable t) {
+            url = null;
+        }
+        return url;
     }
 
     @Override
     public InputStream getResourceAsStream(String path) {
-        return null;
+        try {
+            return getResource(path).openStream();
+        } catch (IOException e) {
+            return null;
+        }
     }
 
     @Override
@@ -582,7 +617,12 @@ public class NettyServletContext implements ServletContext {
 
     @Override
     public <T extends Filter> T createFilter(Class<T> c) throws ServletException {
-        throw new UnsupportedOperationException();
+        try {
+            return c.newInstance();
+        } catch (InstantiationException | IllegalAccessException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     /**

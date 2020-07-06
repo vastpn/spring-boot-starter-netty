@@ -51,6 +51,7 @@ public class FaviconHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 }
                 ctx.fireChannelRead(NettyChannelUtil.createServletRequest(ctx, servletContext, request));
                 ctx.channel().pipeline().remove(this);
+                ReferenceCountUtil.release(msg);
             }));
         } catch (Exception ex) {
             ctx.close();
