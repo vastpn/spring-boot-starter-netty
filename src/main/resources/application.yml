@@ -1,0 +1,15 @@
+#####################
+#配置:应用基础配置
+#描述:引用pom.xml时，必须在application.yml加载顺序之后。bootstrap.yml就不能获取到pom.xml的属性
+#####################
+spring:
+  application:
+    name: @pom.groupId@.@pom.artifactId@
+#logging:
+#  config: classpath:log4j2.xml
+#####################
+#配置:服务配置
+#描述:替换默认Http容器，提升性能
+#####################
+server:
+  port: 9000
