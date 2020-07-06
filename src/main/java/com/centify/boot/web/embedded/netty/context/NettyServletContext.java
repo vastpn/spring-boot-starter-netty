@@ -14,10 +14,7 @@ import org.springframework.http.MediaTypeFactory;
 import org.springframework.lang.Nullable;
 import org.springframework.mock.web.MockRequestDispatcher;
 import org.springframework.mock.web.MockSessionCookieConfig;
-import org.springframework.util.Assert;
-import org.springframework.util.ClassUtils;
-import org.springframework.util.MimeType;
-import org.springframework.util.StringUtils;
+import org.springframework.util.*;
 import org.springframework.web.util.WebUtils;
 
 import javax.servlet.*;
@@ -64,14 +61,6 @@ public class NettyServletContext implements ServletContext {
     private final String resourceBasePath;
 
     private String contextPath = "";
-
-    private int sessionTimeout;
-
-    @Nullable
-    private String requestCharacterEncoding;
-
-    @Nullable
-    private String responseCharacterEncoding;
 
     private int majorVersion = 3;
 
@@ -257,78 +246,16 @@ public class NettyServletContext implements ServletContext {
 
     @Override
     public Set<String> getResourcePaths(String path) {
-//        String actualPath = (path.endsWith("/") ? path : path + "/");
-//        String resourceLocation = getResourceLocation(actualPath);
-//        Resource resource = null;
-//        try {
-//            resource = this.resourceLoader.getResource(resourceLocation);
-//            File file = resource.getFile();
-//            String[] fileList = file.list();
-//            if (ObjectUtils.isEmpty(fileList)) {
-//                return null;
-//            }
-//            Set<String> resourcePaths = new LinkedHashSet<>(fileList.length);
-//            for (String fileEntry : fileList) {
-//                String resultPath = actualPath + fileEntry;
-//                if (resource.createRelative(fileEntry).getFile().isDirectory()) {
-//                    resultPath += "/";
-//                }
-//                resourcePaths.add(resultPath);
-//            }
-//            return resourcePaths;
-//        }
-//        catch (InvalidPathException | IOException ex ) {
-//            if (LOGGER.isWarnEnabled()) {
-//                LOGGER.warn("Could not get resource paths for " +
-//                        (resource != null ? resource : resourceLocation), ex);
-//            }
-//            return null;
-//        }
         return null;
     }
 
     @Override
     public URL getResource(String path) throws MalformedURLException {
-//        String resourceLocation = getResourceLocation(path);
-//        Resource resource = null;
-//        try {
-//            resource = this.resourceLoader.getResource(resourceLocation);
-//            if (!resource.exists()) {
-//                return null;
-//            }
-//            return resource.getURL();
-//        }
-//        catch (MalformedURLException ex) {
-//            throw ex;
-//        }
-//        catch (InvalidPathException | IOException ex) {
-//            if (LOGGER.isWarnEnabled()) {
-//                LOGGER.warn("Could not get URL for resource " +
-//                        (resource != null ? resource : resourceLocation), ex);
-//            }
-//            return null;
-//        }
         return null;
     }
 
     @Override
     public InputStream getResourceAsStream(String path) {
-//        String resourceLocation = getResourceLocation(path);
-//        Resource resource = null;
-//        try {
-//            resource = this.resourceLoader.getResource(resourceLocation);
-//            if (!resource.exists()) {
-//                return null;
-//            }
-//            return resource.getInputStream();
-//        }
-//        catch (InvalidPathException | IOException ex) {
-//            if (LOGGER.isWarnEnabled()) {
-//                LOGGER.warn("Could not open InputStream for resource " +
-//                        (resource != null ? resource : resourceLocation), ex);
-//            }
-//            return null;
-//        }
         return null;
     }
 
