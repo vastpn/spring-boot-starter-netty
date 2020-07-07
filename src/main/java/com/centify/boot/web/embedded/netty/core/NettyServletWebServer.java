@@ -17,6 +17,7 @@ import org.springframework.boot.web.server.WebServer;
 import org.springframework.boot.web.server.WebServerException;
 
 import java.net.InetSocketAddress;
+import java.util.concurrent.ForkJoinPool;
 
 /**
  * <pre>
@@ -126,8 +127,8 @@ public class NettyServletWebServer implements WebServer {
 //                    new DefaultThreadFactory("workerGroup"));
 //
 //        }else{
-        workerGroup = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() * 2,
-                new DefaultThreadFactory("workerGroup"));
+        workerGroup =new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() * 2,
+                new ForkJoinPool(Runtime.getRuntime().availableProcessors() * 2));
 //        }
     }
 
