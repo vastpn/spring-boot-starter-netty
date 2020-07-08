@@ -2,9 +2,7 @@ package com.centify.boot.web.embedded.netty.utils;
 
 import com.alibaba.fastjson.JSONObject;
 import com.centify.boot.web.embedded.netty.context.NettyServletContext;
-import com.centify.boot.web.embedded.netty.servlet.HttpContentInputStream;
 import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletRequest;
-import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletResponse;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
@@ -144,85 +142,95 @@ public final class NettyChannelUtil {
                                                                NettyServletContext servletContext,
                                                                FullHttpRequest fullHttpRequest) {
 
-//        UriComponents uriComponents = UriComponentsBuilder.fromUriString(fullHttpRequest.uri()).build();
-        NettyHttpServletRequest servletRequest = new NettyHttpServletRequest(
-                ctx,servletContext,fullHttpRequest,new HttpContentInputStream(ctx.channel()));
+        UriComponents uriComponents = UriComponentsBuilder.fromUriString(fullHttpRequest.uri()).build();
 
-//        setRequestInfo(fullHttpRequest,uriComponents,servletRequest);
-//
-//        /**header 参数信息*/
-//        setRequestHeader(fullHttpRequest, servletRequest);
-//
-//        setRequestParams(fullHttpRequest, servletRequest, uriComponents);
+        NettyHttpServletRequest servletRequest = new NettyHttpServletRequest(ctx,servletContext,fullHttpRequest);
 
+
+        if (uriComponents.getScheme() != null) {
+            servletRequest.setScheme(uriComponents.getScheme());
+        }
+        if (uriComponents.getHost() != null) {
+            servletRequest.setServerName(uriComponents.getHost());
+        }
+        if (uriComponents.getPort() != -1) {
+            servletRequest.setServerPort(uriComponents.getPort());
+        }
+
+
+        /**header 参数信息*/
+        setRequestHeader(fullHttpRequest, servletRequest);
+
+        setRequestParams(fullHttpRequest, servletRequest, uriComponents);
+
+        Optional.ofNullable(fullHttpRequest.content())
+                .ifPresent((tempContent)->servletRequest.setContent(ByteBufUtil.getBytes(tempContent)));
         return servletRequest;
     }
 
-//    private static void setRequestParams(FullHttpRequest fullHttpRequest, NettyHttpServletRequest servletRequest, UriComponents uriComponents) {
-//        /*URL 转码 */
-//        if (uriComponents.getQuery() != null) {
-//            servletRequest.setQueryString(UriUtils.decode(uriComponents.getQuery(), CharsetUtil.UTF_8));
-//        }
-//        if (HttpMethod.GET.equals(fullHttpRequest.method())) {
-//            innerGetParams(servletRequest, uriComponents);
-//        } else if (HttpMethod.POST.equals(fullHttpRequest.method())) {
-//            innerPostParams(fullHttpRequest, servletRequest);
-//        } else if (HttpMethod.DELETE.equals(fullHttpRequest.method())) {
-//        }
-//    }
+    private static void setRequestParams(FullHttpRequest fullHttpRequest, NettyHttpServletRequest servletRequest, UriComponents uriComponents) {
+        /*URL 转码 */
+        if (uriComponents.getQuery() != null) {
+            servletRequest.setQueryString(UriUtils.decode(uriComponents.getQuery(), CharsetUtil.UTF_8));
+        }
+        if (HttpMethod.GET.equals(fullHttpRequest.method())) {
+            innerGetParams(servletRequest, uriComponents);
+        } else if (HttpMethod.POST.equals(fullHttpRequest.method())) {
+            innerPostParams(fullHttpRequest, servletRequest);
+        } else if (HttpMethod.DELETE.equals(fullHttpRequest.method())) {
+        }
+    }
 
-//    private static void innerPostParams(FullHttpRequest fullHttpRequest, NettyHttpServletRequest servletRequest) {
-//        Optional.ofNullable(fullHttpRequest.headers().get("Content-Type").trim().toLowerCase())
-//                .ifPresent(item -> {
-//                    if (item.contains("multipart/form-data") || item.contains("application/x-www-form-urlencoded")) {
-//                        HttpPostRequestDecoder decoder = new HttpPostRequestDecoder(new DefaultHttpDataFactory(false), fullHttpRequest);
-//                        servletRequest.setParameters(decoder.getBodyHttpDatas().parallelStream()
-//                                .filter((data) -> data.getHttpDataType().equals(InterfaceHttpData.HttpDataType.Attribute))
-//                                .map((convData) -> (MemoryAttribute) convData)
-//                                .collect(Collectors.toMap(
-//                                        MemoryAttribute::getName,
-//                                        MemoryAttribute::getValue,
-//                                        (key1, key2) -> key2)));
-//                    } else if (item.contains("application/json")) {
-//                        servletRequest.setContent(ByteBufUtil.getBytes(fullHttpRequest.content()));
-//                    }
-//                });
-//    }
+    private static void innerPostParams(FullHttpRequest fullHttpRequest, NettyHttpServletRequest servletRequest) {
+        Optional.ofNullable(fullHttpRequest.headers().get("Content-Type").trim().toLowerCase())
+                .ifPresent(item -> {
+                    if (item.contains("multipart/form-data") || item.contains("application/x-www-form-urlencoded")) {
+                        HttpPostRequestDecoder decoder = new HttpPostRequestDecoder(new DefaultHttpDataFactory(false), fullHttpRequest);
+                        servletRequest.setParameters(decoder.getBodyHttpDatas().parallelStream()
+                                .filter((data) -> data.getHttpDataType().equals(InterfaceHttpData.HttpDataType.Attribute))
+                                .map((convData) -> (MemoryAttribute) convData)
+                                .collect(Collectors.toMap(
+                                        MemoryAttribute::getName,
+                                        MemoryAttribute::getValue,
+                                        (key1, key2) -> key2)));
+                    }
+                });
+    }
 
-//    private static void innerGetParams(NettyHttpServletRequest servletRequest, UriComponents uriComponents) {
-//        Optional.ofNullable(uriComponents.getQueryParams().entrySet())
-//                .ifPresent((entrys) -> {
-//                    entrys.parallelStream().forEach((entry) -> {
-//                        entry.getValue().parallelStream().forEach((item) -> {
-//                            servletRequest.addParameter(
-//                                    UriUtils.decode(entry.getKey(), CharsetUtil.UTF_8),
-//                                    UriUtils.decode(item, CharsetUtil.UTF_8));
-//                        });
-//                    });
-//                });
-//    }
+    private static void innerGetParams(NettyHttpServletRequest servletRequest, UriComponents uriComponents) {
+        Optional.ofNullable(uriComponents.getQueryParams().entrySet())
+                .ifPresent((entrys) -> {
+                    entrys.parallelStream().forEach((entry) -> {
+                        entry.getValue().parallelStream().forEach((item) -> {
+                            servletRequest.addParameter(
+                                    UriUtils.decode(entry.getKey(), CharsetUtil.UTF_8),
+                                    UriUtils.decode(item, CharsetUtil.UTF_8));
+                        });
+                    });
+                });
+    }
 
-//    private static void setRequestHeader(FullHttpRequest fullHttpRequest, NettyHttpServletRequest servletRequest) {
-//        Optional.ofNullable(fullHttpRequest.headers().names())
-//                .ifPresent((headers) -> {
-//                    headers.parallelStream().forEach((item) -> {
-//                        servletRequest.addHeader(item, fullHttpRequest.headers().get(item));
-//                    });
-//                });
-//    }
+    private static void setRequestHeader(FullHttpRequest fullHttpRequest, NettyHttpServletRequest servletRequest) {
+        Optional.ofNullable(fullHttpRequest.headers().names())
+                .ifPresent((headers) -> {
+                    headers.parallelStream().forEach((item) -> {
+                        servletRequest.addHeader(item, fullHttpRequest.headers().get(item));
+                    });
+                });
+    }
 
-//    private static void setRequestInfo(FullHttpRequest fullHttpRequest, UriComponents uriComponents, NettyHttpServletRequest servletRequest) {
-//        servletRequest.setRequestURI(uriComponents.getPath());
-//        servletRequest.setPathInfo(uriComponents.getPath());
-//
-//        if (uriComponents.getScheme() != null) {
-//            servletRequest.setScheme(uriComponents.getScheme());
-//        }
-//        if (uriComponents.getHost() != null) {
-//            servletRequest.setServerName(uriComponents.getHost());
-//        }
-//        if (uriComponents.getPort() != -1) {
-//            servletRequest.setServerPort(uriComponents.getPort());
-//        }
-//    }
+    private static void setRequestInfo(FullHttpRequest fullHttpRequest, UriComponents uriComponents, NettyHttpServletRequest servletRequest) {
+        servletRequest.setRequestURI(uriComponents.getPath());
+        servletRequest.setPathInfo(uriComponents.getPath());
+
+        if (uriComponents.getScheme() != null) {
+            servletRequest.setScheme(uriComponents.getScheme());
+        }
+        if (uriComponents.getHost() != null) {
+            servletRequest.setServerName(uriComponents.getHost());
+        }
+        if (uriComponents.getPort() != -1) {
+            servletRequest.setServerPort(uriComponents.getPort());
+        }
+    }
 }

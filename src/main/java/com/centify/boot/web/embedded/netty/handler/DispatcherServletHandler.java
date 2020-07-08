@@ -2,7 +2,6 @@ package com.centify.boot.web.embedded.netty.handler;
 
 import com.centify.boot.web.embedded.netty.context.NettyServletContext;
 import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletRequest;
-import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletResponse;
 import com.centify.boot.web.embedded.netty.servlet.NettyRequestDispatcher;
 import com.centify.boot.web.embedded.netty.utils.NettyChannelUtil;
 import io.netty.buffer.Unpooled;
@@ -13,8 +12,6 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.ReferenceCountUtil;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-
-import javax.servlet.http.HttpServletResponse;
 
 /**
  * <pre>
@@ -39,40 +36,25 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<NettyH
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, NettyHttpServletRequest msg) throws Exception {
-        MockHttpServletResponse servletResponse = new MockHttpServletResponse();
+
         try {
-            NettyRequestDispatcher dispatcher = (NettyRequestDispatcher) servletContext.getRequestDispatcher(msg.getRequestURI());
-            if (dispatcher == null) {
-                servletResponse.sendError(404);
+            MockHttpServletResponse servletResponse = new MockHttpServletResponse();
+            NettyRequestDispatcher dispatcherServlet = (NettyRequestDispatcher) servletContext.getRequestDispatcher(msg.getRequestURI());
+            if (dispatcherServlet == null) {
                 return;
             }
-            dispatcher.dispatch(msg, servletResponse);
-                        NettyChannelUtil.sendResultByteBuf(
+
+            dispatcherServlet.dispatch(msg, servletResponse);
+
+            NettyChannelUtil.sendResultByteBuf(
                     ctx,
                     HttpResponseStatus.valueOf(servletResponse.getStatus()),
                     msg,
                     Unpooled.wrappedBuffer(servletResponse.getContentAsByteArray())
             );
         } finally {
-//            if (!msg.isAsyncStarted()) {
-//                servletResponse.getOutputStream().close();
-//            }
-//            ReferenceCountUtil.release(msg);
+            ReferenceCountUtil.release(msg);
         }
-//        try {
-//            MockHttpServletResponse servletResponse = new MockHttpServletResponse();
-//            NettyRequestDispatcher dispatcherServlet = (NettyRequestDispatcher) servletContext.getRequestDispatcher(msg.getRequestURI());
-//            dispatcherServlet.dispatch(msg, servletResponse);
-//            NettyChannelUtil.sendResultByteBuf(
-//                    ctx,
-//                    HttpResponseStatus.valueOf(servletResponse.getStatus()),
-//                    msg,
-//                    Unpooled.wrappedBuffer(servletResponse.getContentAsByteArray())
-//            );
-//        }catch (Exception ex){
-//            ctx.close();
-//            ReferenceCountUtil.release(msg);
-//        }
     }
 
     @Override

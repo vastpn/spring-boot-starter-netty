@@ -72,7 +72,7 @@ public class NettyServletWebServer implements WebServer {
                     .option(ChannelOption.SO_REUSEADDR, Boolean.TRUE)
                     /*设置可处理队列数量*/
                     .option(ChannelOption.SO_BACKLOG, 128)
-                    .option(NioChannelOption.SO_RCVBUF, 4*1024)
+                    .option(ChannelOption.SO_RCVBUF, 4*1024)
                     /*ByteBuf重用缓冲区*/
                     .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                     /*响应时间有高要求的场景 禁用nagle 算法*/
@@ -127,8 +127,8 @@ public class NettyServletWebServer implements WebServer {
 //                    new DefaultThreadFactory("workerGroup"));
 //
 //        }else{
-        workerGroup =new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() * 2,
-                new ForkJoinPool(Runtime.getRuntime().availableProcessors() * 2));
+        workerGroup = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() * 2,
+                new DefaultThreadFactory("workerGroup"));
 //        }
     }
 

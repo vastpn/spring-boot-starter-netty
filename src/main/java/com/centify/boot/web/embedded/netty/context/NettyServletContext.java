@@ -26,6 +26,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.InvalidPathException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -76,15 +77,15 @@ public class NettyServletContext implements ServletContext {
 
     private String servletContextName = "MockServletContext";
 
-    private final Map<String, RequestDispatcher> namedRequestDispatchers = new HashMap<>();
+    private final Map<String, RequestDispatcher> namedRequestDispatchers = new ConcurrentHashMap<>();
 
-    private final Map<String, NettyServletRegistration> servlets = new HashMap<>();
+    private final Map<String, NettyServletRegistration> servlets = new ConcurrentHashMap<>();
 
-    private final Map<String, String> servletMappings = new HashMap<>();
+    private final Map<String, String> servletMappings = new ConcurrentHashMap<>();
 
-    private final Map<String, NettyFilterRegistration> filters = new HashMap<>();
+    private final Map<String, NettyFilterRegistration> filters = new ConcurrentHashMap<>();
 
-    private final Map<String, ServletContext> contexts = new HashMap<>();
+    private final Map<String, ServletContext> contexts = new ConcurrentHashMap<>();
 
     private final Map<String, MediaType> mimeTypes = new LinkedHashMap<>();
 
