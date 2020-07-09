@@ -26,6 +26,8 @@ import io.netty.handler.timeout.WriteTimeoutHandler;
  */
 public class NettyServletChannelInitializer extends ChannelInitializer<SocketChannel> {
     private final NettyServletContext servletContext;
+    private final FaviconHandler faviconHandler;
+    private final DispatcherServletHandler dispatcherServletHandler;
     /**
      * 请求粘包最大长度（256KB）
      */
@@ -33,6 +35,10 @@ public class NettyServletChannelInitializer extends ChannelInitializer<SocketCha
 
     public NettyServletChannelInitializer(NettyServletContext servletContext) {
         this.servletContext = servletContext;
+        this.faviconHandler = FaviconHandler.getInstance();
+        this.faviconHandler.setServletContext(servletContext);
+        this.dispatcherServletHandler = DispatcherServletHandler.getInstance();
+        this.dispatcherServletHandler.setServletContext(servletContext);
     }
 
     @Override
@@ -48,9 +54,9 @@ public class NettyServletChannelInitializer extends ChannelInitializer<SocketCha
                 /**用于处理大的数据流*/
                 .addLast("ChunkedWrite", new ChunkedWriteHandler())
                 /**过滤 favicon.ico 请求*/
-                .addLast("Favicon", new FaviconHandler(servletContext))
+                .addLast("Favicon", faviconHandler)
                 /**转交给SpringMVC dispatcherServlet 处理业务逻辑，可正常使用Spring RestController 等注解*/
-                .addLast("DispatcherServlet", new DispatcherServletHandler(servletContext))
+                .addLast("DispatcherServlet", dispatcherServletHandler)
                 /**写入超时*/
                 .addLast("WTimeout", new WriteTimeoutHandler(1));
     }

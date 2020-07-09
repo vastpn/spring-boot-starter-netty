@@ -2,7 +2,6 @@ package com.centify.boot.web.embedded.netty.handler;
 
 import com.centify.boot.web.embedded.netty.constant.NettyConstant;
 import com.centify.boot.web.embedded.netty.context.NettyServletContext;
-import com.centify.boot.web.embedded.netty.core.NettyServletWebServer;
 import com.centify.boot.web.embedded.netty.utils.NettyChannelUtil;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
@@ -33,10 +32,22 @@ import java.util.Optional;
 @ChannelHandler.Sharable
 public class FaviconHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
     private static final Logger LOGGER = LoggerFactory.getLogger(FaviconHandler.class);
-    private final NettyServletContext servletContext;
+    private NettyServletContext servletContext;
 
-    public FaviconHandler(NettyServletContext servletContext) {
+    private static class SingletonHolder {
+
+        public final static FaviconHandler handler = new FaviconHandler();
+    }
+    public static FaviconHandler getInstance() {
+        return SingletonHolder.handler;
+    }
+
+    public void setServletContext(NettyServletContext servletContext) {
         this.servletContext = servletContext;
+    }
+
+    public NettyServletContext getServletContext() {
+        return servletContext;
     }
 
     @Override
