@@ -53,14 +53,12 @@ public class FaviconHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest msg) throws Exception {
         try {
-            Optional.of(msg).ifPresent((request -> {
-                if (!request.decoderResult().isSuccess() ||
-                        NettyConstant.HTTP_REQUEST_FAVICON.equalsIgnoreCase(request.uri())) {
-                    ctx.close();
-                    return;
-                }
-                ctx.fireChannelRead(NettyChannelUtil.createServletRequest(ctx, servletContext, request));
-            }));
+            if (!msg.decoderResult().isSuccess() ||
+                    NettyConstant.HTTP_REQUEST_FAVICON.equalsIgnoreCase(msg.uri())) {
+                ctx.close();
+                return;
+            }
+            ctx.fireChannelRead(NettyChannelUtil.createServletRequest(ctx, servletContext, msg));
         } catch (Exception ex) {
             ctx.close();
         }finally {

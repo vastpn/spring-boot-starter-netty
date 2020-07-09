@@ -8,6 +8,7 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.util.ReferenceCountUtil;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -50,6 +51,11 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<MockHt
         MockHttpServletResponse servletResponse = new MockHttpServletResponse();
         NettyRequestDispatcher dispatcherServlet = (NettyRequestDispatcher) servletContext.getRequestDispatcher(((MockHttpServletRequest) msg).getRequestURI());
         dispatcherServlet.dispatch(msg, servletResponse);
+        if (!msg.isActive()){
+            ctx.close();
+            ReferenceCountUtil.release(msg);
+            return ;
+        }
         NettyChannelUtil.sendResultByteBuf(
                 ctx,
                 HttpResponseStatus.valueOf(servletResponse.getStatus()),
