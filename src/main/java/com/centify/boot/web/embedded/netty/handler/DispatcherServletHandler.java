@@ -27,7 +27,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
  * <pre>
  */
 @ChannelHandler.Sharable
-public class DispatcherServletHandler extends SimpleChannelInboundHandler<NettyHttpServletRequest> {
+public class DispatcherServletHandler extends SimpleChannelInboundHandler<MockHttpServletRequest> {
     private final NettyServletContext servletContext;
 
     public DispatcherServletHandler(NettyServletContext servletContext) {
@@ -35,26 +35,16 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<NettyH
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, NettyHttpServletRequest msg) throws Exception {
-
-        try {
-            MockHttpServletResponse servletResponse = new MockHttpServletResponse();
-            NettyRequestDispatcher dispatcherServlet = (NettyRequestDispatcher) servletContext.getRequestDispatcher(msg.getRequestURI());
-            if (dispatcherServlet == null) {
-                return;
-            }
-
-            dispatcherServlet.dispatch(msg, servletResponse);
-
-            NettyChannelUtil.sendResultByteBuf(
-                    ctx,
-                    HttpResponseStatus.valueOf(servletResponse.getStatus()),
-                    msg,
-                    Unpooled.wrappedBuffer(servletResponse.getContentAsByteArray())
-            );
-        } finally {
-            ReferenceCountUtil.release(msg);
-        }
+    protected void channelRead0(ChannelHandlerContext ctx, MockHttpServletRequest msg) throws Exception {
+        MockHttpServletResponse servletResponse = new MockHttpServletResponse();
+        NettyRequestDispatcher dispatcherServlet = (NettyRequestDispatcher) servletContext.getRequestDispatcher(((MockHttpServletRequest) msg).getRequestURI());
+        dispatcherServlet.dispatch(msg, servletResponse);
+        NettyChannelUtil.sendResultByteBuf(
+                ctx,
+                HttpResponseStatus.valueOf(servletResponse.getStatus()),
+                msg,
+                Unpooled.wrappedBuffer(servletResponse.getContentAsByteArray())
+        );
     }
 
     @Override

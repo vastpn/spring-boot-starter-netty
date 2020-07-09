@@ -46,15 +46,14 @@ public class FaviconHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 if (!request.decoderResult().isSuccess() ||
                         NettyConstant.HTTP_REQUEST_FAVICON.equalsIgnoreCase(request.uri())) {
                     ctx.close();
-                    ReferenceCountUtil.release(msg);
                     return;
                 }
                 ctx.fireChannelRead(NettyChannelUtil.createServletRequest(ctx, servletContext, request));
-                ctx.channel().pipeline().remove(this);
-                ReferenceCountUtil.release(msg);
             }));
         } catch (Exception ex) {
             ctx.close();
+        }finally {
+            ctx.channel().pipeline().remove(this);
             ReferenceCountUtil.release(msg);
         }
     }

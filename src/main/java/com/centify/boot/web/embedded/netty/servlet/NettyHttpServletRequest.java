@@ -1,20 +1,3 @@
-/*
- * Copyright 2014 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
-
 package com.centify.boot.web.embedded.netty.servlet;
 
 import com.centify.boot.web.embedded.netty.context.NettyServletContext;
@@ -36,12 +19,19 @@ import java.security.Principal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * {@link HttpServletRequest} wrapper for Netty's {@link HttpRequest}.
+ * <pre>
+ * <b>TODO</b>
+ * <b>Describe:TODO</b>
  *
- * @author Danny Thomas
+ * <b>Author: tanlin [2020/6/16 18:57]</b>
+ * <b>Copyright:</b> Copyright 2008-2026 http://www.jinvovo.com Technology Co., Ltd. All rights reserved.
+ * <b>Changelog:</b>
+ *   Ver   Date                  Author           Detail
+ *   ----------------------------------------------------------------------------
+ *   1.0   2020/6/16 18:57        tanlin            new file.
+ * <pre>
  */
 public class NettyHttpServletRequest implements HttpServletRequest {
     public static final String DISPATCHER_TYPE = NettyRequestDispatcher.class.getName() + ".DISPATCHER_TYPE";
@@ -79,7 +69,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     private byte[] content;
     private String characterEncoding;
     private String contentType;
-    private final Map<String, HeaderValueHolder> headers = new LinkedCaseInsensitiveMap<>();
+    private final Map<String, NettyHeaderValueHolder> headers = new LinkedCaseInsensitiveMap<>();
     private BufferedReader reader;
 
     public NettyHttpServletRequest(ChannelHandlerContext ctx, NettyServletContext servletContext, HttpRequest request) {
@@ -124,7 +114,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     @Override
     public long getDateHeader(String name) {
-        HeaderValueHolder header = this.headers.get(name);
+        NettyHeaderValueHolder header = this.headers.get(name);
         Object value = (header != null ? header.getValue() : null);
         if (value instanceof Date) {
             return ((Date) value).getTime();
@@ -161,13 +151,13 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     }
     @Override
     public String getHeader(String name) {
-        HeaderValueHolder header = this.headers.get(name);
+        NettyHeaderValueHolder header = this.headers.get(name);
         return (header != null ? header.getStringValue() : null);
     }
 
     @Override
     public Enumeration<String> getHeaders(String name) {
-        HeaderValueHolder header = this.headers.get(name);
+        NettyHeaderValueHolder header = this.headers.get(name);
         return Collections.enumeration(header != null ? header.getStringValues() : new LinkedList<>());
     }
 
@@ -178,7 +168,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     @Override
     public int getIntHeader(String name) {
-        HeaderValueHolder header = this.headers.get(name);
+        NettyHeaderValueHolder header = this.headers.get(name);
         Object value = (header != null ? header.getValue() : null);
         if (value instanceof Number) {
             return ((Number) value).intValue();
@@ -386,10 +376,10 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         }
     }
     private void doAddHeaderValue(String name, @Nullable Object value, boolean replace) {
-        HeaderValueHolder header = this.headers.get(name);
+        NettyHeaderValueHolder header = this.headers.get(name);
         Assert.notNull(value, "Header value must not be null");
         if (header == null || replace) {
-            header = new HeaderValueHolder();
+            header = new NettyHeaderValueHolder();
             this.headers.put(name, header);
         }
         if (value instanceof Collection) {
@@ -723,4 +713,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     public DispatcherType getDispatcherType() {
         return attributes.containsKey(DISPATCHER_TYPE) ? (DispatcherType) attributes.get(DISPATCHER_TYPE) : DispatcherType.REQUEST;
     }
+
 }
+

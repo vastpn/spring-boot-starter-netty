@@ -79,8 +79,8 @@ public class NettyServletWebServer implements WebServer {
                     .childOption(NioChannelOption.TCP_NODELAY, Boolean.TRUE)
                     /*是否允许端口占用*/
                     .childOption(NioChannelOption.SO_REUSEADDR, Boolean.TRUE)
-                    /*是否设置长连接*/
-                    .childOption(NioChannelOption.SO_KEEPALIVE, Boolean.TRUE)
+//                    /*是否设置长连接*/
+//                    .childOption(NioChannelOption.SO_KEEPALIVE, Boolean.TRUE)
                     /*设置接收数据大小 设置为4K*/
                     .childOption(NioChannelOption.SO_RCVBUF, 4*1024)
                     /*设置发送数据大小 设置为16K*/
@@ -127,8 +127,8 @@ public class NettyServletWebServer implements WebServer {
 //                    new DefaultThreadFactory("workerGroup"));
 //
 //        }else{
-        workerGroup = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() * 2,
-                new DefaultThreadFactory("workerGroup"));
+        workerGroup =new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() * 2,
+                new ForkJoinPool(Runtime.getRuntime().availableProcessors() * 2));
 //        }
     }
 

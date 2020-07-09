@@ -1,20 +1,3 @@
-/*
- * Copyright 2014 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
-
 package com.centify.boot.web.embedded.netty.servlet;
 
 import com.google.common.collect.ImmutableList;
@@ -27,11 +10,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Netty {@link AsyncContext}.
+ * <pre>
+ * <b>TODO</b>
+ * <b>Describe:TODO</b>
  *
- * @author Danny Thomas
+ * <b>Author: tanlin [2020/6/16 19:00]</b>
+ * <b>Copyright:</b> Copyright 2008-2026 http://www.jinvovo.com Technology Co., Ltd. All rights reserved.
+ * <b>Changelog:</b>
+ *   Ver   Date                  Author           Detail
+ *   ----------------------------------------------------------------------------
+ *   1.0   2020/6/16 19:00        tanlin            new file.
+ * <pre>
  */
-class NettyAsyncContext implements AsyncContext {
+public class NettyAsyncContext implements AsyncContext {
     private ServletRequest servletRequest;
     private final ChannelHandlerContext ctx;
     private ServletResponse servletResponse;
@@ -93,19 +84,16 @@ class NettyAsyncContext implements AsyncContext {
         httpRequest.setAttribute(ASYNC_REQUEST_URI, httpRequest.getRequestURI());
         httpRequest.setAttribute(ASYNC_SERVLET_PATH, httpRequest.getServletPath());
         final NettyRequestDispatcher dispatcher = (NettyRequestDispatcher) context.getRequestDispatcher(path);
-        ctx.executor().submit(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    dispatcher.dispatch(httpRequest, servletResponse);
-                    // TODO is this right?
-                    for (AsyncListener listener : ImmutableList.copyOf(listeners)) {
-                        listener.onComplete(new AsyncEvent(NettyAsyncContext.this));
-                    }
-                } catch (ServletException | IOException e) {
-                    // TODO notify listeners
-                    e.printStackTrace();
+        ctx.executor().submit(()->{
+            try {
+                dispatcher.dispatch(httpRequest, servletResponse);
+                // TODO is this right?
+                for (AsyncListener listener : ImmutableList.copyOf(listeners)) {
+                    listener.onComplete(new AsyncEvent(NettyAsyncContext.this));
                 }
+            } catch (ServletException | IOException e) {
+                // TODO notify listeners
+                e.printStackTrace();
             }
         });
     }
@@ -154,3 +142,4 @@ class NettyAsyncContext implements AsyncContext {
         return asyncStarted;
     }
 }
+

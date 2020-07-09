@@ -8,12 +8,12 @@ import java.io.IOException;
  * <b>TODO</b>
  * <b>Describe:TODO</b>
  *
- * <b>Author: tanlin [2020/7/6 11:07]</b>
+ * <b>Author: tanlin [2020/6/16 18:55]</b>
  * <b>Copyright:</b> Copyright 2008-2026 http://www.jinvovo.com Technology Co., Ltd. All rights reserved.
  * <b>Changelog:</b>
  *   Ver   Date                  Author           Detail
  *   ----------------------------------------------------------------------------
- *   1.0   2020/7/6 11:07        tanlin            new file.
+ *   1.0   2020/6/16 18:55        tanlin            new file.
  * <pre>
  */
 public class NettyRequestDispatcher implements RequestDispatcher {
@@ -27,15 +27,19 @@ public class NettyRequestDispatcher implements RequestDispatcher {
 
     @Override
     public void forward(ServletRequest request, ServletResponse response) throws ServletException, IOException {
-        filterChain.doFilter(request, response);
+        request.setAttribute(NettyHttpServletRequest.DISPATCHER_TYPE, DispatcherType.FORWARD);
+        // TODO implement
     }
 
     @Override
     public void include(ServletRequest request, ServletResponse response) throws ServletException, IOException {
-        filterChain.doFilter(request, response);
+        request.setAttribute(NettyHttpServletRequest.DISPATCHER_TYPE, DispatcherType.INCLUDE);
+        // TODO implement
     }
 
     public void dispatch(ServletRequest request, ServletResponse response) throws ServletException, IOException {
+        request.setAttribute(NettyHttpServletRequest.DISPATCHER_TYPE, DispatcherType.ASYNC);
         filterChain.doFilter(request, response);
     }
 }
+

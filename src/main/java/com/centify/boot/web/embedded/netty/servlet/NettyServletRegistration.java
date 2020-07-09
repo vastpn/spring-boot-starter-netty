@@ -12,12 +12,12 @@ import java.util.Set;
  * <b>TODO</b>
  * <b>Describe:TODO</b>
  *
- * <b>Author: tanlin [2020/7/6 11:05]</b>
+ * <b>Author: tanlin [2020/6/16 16:48]</b>
  * <b>Copyright:</b> Copyright 2008-2026 http://www.jinvovo.com Technology Co., Ltd. All rights reserved.
  * <b>Changelog:</b>
  *   Ver   Date                  Author           Detail
  *   ----------------------------------------------------------------------------
- *   1.0   2020/7/6 11:05        tanlin            new file.
+ *   1.0   2020/6/16 16:48        tanlin            new file.
  * <pre>
  */
 public class NettyServletRegistration extends AbstractNettyRegistration implements ServletRegistration.Dynamic {

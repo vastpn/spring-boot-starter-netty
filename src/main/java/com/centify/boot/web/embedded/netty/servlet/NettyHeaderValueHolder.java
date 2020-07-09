@@ -11,17 +11,16 @@ import java.util.*;
  * <b>TODO</b>
  * <b>Describe:TODO</b>
  *
- * <b>Author: tanlin [2020/7/7 16:42]</b>
+ * <b>Author: tanlin [2020/6/16 21:16]</b>
  * <b>Copyright:</b> Copyright 2008-2026 http://www.jinvovo.com Technology Co., Ltd. All rights reserved.
  * <b>Changelog:</b>
  *   Ver   Date                  Author           Detail
  *   ----------------------------------------------------------------------------
- *   1.0   2020/7/7 16:42        tanlin            new file.
+ *   1.0   2020/6/16 21:16        tanlin            new file.
  * <pre>
  */
-public class HeaderValueHolder {
+public class NettyHeaderValueHolder {
     private final List<Object> values = new LinkedList<>();
-
 
     public void setValue(@Nullable Object value) {
         this.values.clear();
@@ -80,7 +79,7 @@ public class HeaderValueHolder {
      */
     @Nullable
     @Deprecated
-    public static HeaderValueHolder getByName(Map<String, HeaderValueHolder> headers, String name) {
+    public static NettyHeaderValueHolder getByName(Map<String, NettyHeaderValueHolder> headers, String name) {
         Assert.notNull(name, "Header name must not be null");
         for (String headerName : headers.keySet()) {
             if (headerName.equalsIgnoreCase(name)) {
@@ -89,4 +88,5 @@ public class HeaderValueHolder {
         }
         return null;
     }
+
 }

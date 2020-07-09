@@ -66,7 +66,9 @@ public class NettyServletWebServerFactory extends AbstractServletWebServerFactor
         /**从SpringBoot配置中获取端口，如果没有则随机生成*/
         int port = getPort() > 0 ? getPort() : 8080;
         InetSocketAddress address = new InetSocketAddress(port);
+
         LOGGER.info("Server initialized with port: {}", port);
+        servletContext.setAttribute("serverAddress",address);
         /**初始化容器并返回*/
         return new NettyServletWebServer(address,servletContext);
     }
