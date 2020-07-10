@@ -2,7 +2,6 @@ package com.centify.boot.web.embedded.netty.utils;
 
 import com.alibaba.fastjson.JSONObject;
 import com.centify.boot.web.embedded.netty.context.NettyServletContext;
-import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
@@ -185,6 +184,10 @@ public final class NettyChannelUtil {
                 .ifPresent(item -> {
                     if (item.contains("multipart/form-data") || item.contains("application/x-www-form-urlencoded")) {
                         HttpPostRequestDecoder decoder = new HttpPostRequestDecoder(new DefaultHttpDataFactory(false), fullHttpRequest);
+
+
+
+
                         servletRequest.setParameters(decoder.getBodyHttpDatas().parallelStream()
                                 .filter((data) -> data.getHttpDataType().equals(InterfaceHttpData.HttpDataType.Attribute))
                                 .map((convData) -> (MemoryAttribute) convData)
@@ -192,6 +195,8 @@ public final class NettyChannelUtil {
                                         MemoryAttribute::getName,
                                         MemoryAttribute::getValue,
                                         (key1, key2) -> key2)));
+                        servletRequest.setContent(ByteBufUtil.getBytes(fullHttpRequest.content()));
+
                     } else if (item.contains("application/json")) {
                         servletRequest.setContent(ByteBufUtil.getBytes(fullHttpRequest.content()));
                     }
@@ -218,20 +223,5 @@ public final class NettyChannelUtil {
                         servletRequest.addHeader(item, fullHttpRequest.headers().get(item));
                     });
                 });
-    }
-
-    private static void setRequestInfo(FullHttpRequest fullHttpRequest, UriComponents uriComponents, NettyHttpServletRequest servletRequest) {
-        servletRequest.setRequestURI(uriComponents.getPath());
-        servletRequest.setPathInfo(uriComponents.getPath());
-
-        if (uriComponents.getScheme() != null) {
-            servletRequest.setScheme(uriComponents.getScheme());
-        }
-        if (uriComponents.getHost() != null) {
-            servletRequest.setServerName(uriComponents.getHost());
-        }
-        if (uriComponents.getPort() != -1) {
-            servletRequest.setServerPort(uriComponents.getPort());
-        }
     }
 }

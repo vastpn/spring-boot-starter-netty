@@ -17,6 +17,7 @@ import java.io.IOException;
  * <pre>
  */
 public class NettyRequestDispatcher implements RequestDispatcher {
+    public static final String DISPATCHER_TYPE = NettyRequestDispatcher.class.getName() + ".DISPATCHER_TYPE";
     private final ServletContext context;
     private final FilterChain filterChain;
 
@@ -27,18 +28,18 @@ public class NettyRequestDispatcher implements RequestDispatcher {
 
     @Override
     public void forward(ServletRequest request, ServletResponse response) throws ServletException, IOException {
-        request.setAttribute(NettyHttpServletRequest.DISPATCHER_TYPE, DispatcherType.FORWARD);
+        request.setAttribute(DISPATCHER_TYPE, DispatcherType.FORWARD);
         // TODO implement
     }
 
     @Override
     public void include(ServletRequest request, ServletResponse response) throws ServletException, IOException {
-        request.setAttribute(NettyHttpServletRequest.DISPATCHER_TYPE, DispatcherType.INCLUDE);
+        request.setAttribute(DISPATCHER_TYPE, DispatcherType.INCLUDE);
         // TODO implement
     }
 
     public void dispatch(ServletRequest request, ServletResponse response) throws ServletException, IOException {
-        request.setAttribute(NettyHttpServletRequest.DISPATCHER_TYPE, DispatcherType.ASYNC);
+        request.setAttribute(DISPATCHER_TYPE, DispatcherType.REQUEST);
         filterChain.doFilter(request, response);
     }
 }
