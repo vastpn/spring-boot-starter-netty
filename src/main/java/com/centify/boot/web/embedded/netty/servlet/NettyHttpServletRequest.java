@@ -1,5 +1,6 @@
 package com.centify.boot.web.embedded.netty.servlet;
 
+import com.centify.boot.web.embedded.netty.constant.HttpHeaderConstants;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.handler.codec.http.FullHttpRequest;
 import org.springframework.http.HttpHeaders;
@@ -13,6 +14,7 @@ import javax.servlet.*;
 import javax.servlet.http.*;
 import java.io.*;
 import java.security.Principal;
+import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -124,9 +126,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     private FullHttpRequest fullHttpRequest;
 
     @Nullable
-    private String contentType;
-
-    @Nullable
     private NettyServletInputStream inputStream = new NettyServletInputStream();
 
     @Nullable
@@ -178,8 +177,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     @Nullable
     private Cookie[] cookies;
-
-    private final Map<String, HeaderValueHolder> headers = new LinkedCaseInsensitiveMap<>();
 
     @Nullable
     private String method;
@@ -266,7 +263,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
      * @param requestURI the request URI (may be {@code null})
      * @see #setMethod
      * @see #setRequestURI
-     * @see #setPreferredLocales
      * @see MockServletContext
      */
     public NettyHttpServletRequest(@Nullable ServletContext servletContext, @Nullable String method, @Nullable String requestURI) {
@@ -355,18 +351,8 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     @Override
     public void setCharacterEncoding(@Nullable String characterEncoding) {
         this.characterEncoding = characterEncoding;
-        updateContentTypeHeader();
     }
 
-    private void updateContentTypeHeader() {
-        if (StringUtils.hasLength(this.contentType)) {
-            String value = this.contentType;
-            if (StringUtils.hasLength(this.characterEncoding) && !this.contentType.toLowerCase().contains(CHARSET_PREFIX)) {
-                value += ';' + CHARSET_PREFIX + this.characterEncoding;
-            }
-            doAddHeaderValue(HttpHeaders.CONTENT_TYPE, value, true);
-        }
-    }
 
     /**
      * Set the content of the request body as a byte array.
@@ -431,30 +417,10 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         return inputStream.getContentLength();
     }
 
-    public void setContentType(@Nullable String contentType) {
-        this.contentType = contentType;
-        if (contentType != null) {
-            try {
-                MediaType mediaType = MediaType.parseMediaType(contentType);
-                if (mediaType.getCharset() != null) {
-                    this.characterEncoding = mediaType.getCharset().name();
-                }
-            }
-            catch (IllegalArgumentException ex) {
-                // Try to get charset value anyway
-                int charsetIndex = contentType.toLowerCase().indexOf(CHARSET_PREFIX);
-                if (charsetIndex != -1) {
-                    this.characterEncoding = contentType.substring(charsetIndex + CHARSET_PREFIX.length());
-                }
-            }
-            updateContentTypeHeader();
-        }
-    }
-
     @Override
     @Nullable
     public String getContentType() {
-        return this.contentType;
+        return getHeader(HttpHeaderConstants.CONTENT_TYPE.toString());
     }
 
     @Override
@@ -716,34 +682,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         this.attributes.clear();
     }
 
-    /**
-     * Add a new preferred locale, before any existing locales.
-     * @see #setPreferredLocales
-     */
-    public void addPreferredLocale(Locale locale) {
-        Assert.notNull(locale, "Locale must not be null");
-        this.locales.addFirst(locale);
-        updateAcceptLanguageHeader();
-    }
-
-    /**
-     * Set the list of preferred locales, in descending order, effectively replacing
-     * any existing locales.
-     * @since 3.2
-     * @see #addPreferredLocale
-     */
-    public void setPreferredLocales(List<Locale> locales) {
-        Assert.notEmpty(locales, "Locale list must not be empty");
-        this.locales.clear();
-        this.locales.addAll(locales);
-        updateAcceptLanguageHeader();
-    }
-
-    private void updateAcceptLanguageHeader() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAcceptLanguageAsLocales(this.locales);
-        doAddHeaderValue(HttpHeaders.ACCEPT_LANGUAGE, headers.getFirst(HttpHeaders.ACCEPT_LANGUAGE), true);
-    }
 
     /**
      * Return the first preferred {@linkplain Locale locale} configured
@@ -755,8 +693,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
      * does <strong>not</strong> take into consideration any locales
      * specified via the {@code Accept-Language} header.
      * @see javax.servlet.ServletRequest#getLocale()
-     * @see #addPreferredLocale(Locale)
-     * @see #setPreferredLocales(List)
      */
     @Override
     public Locale getLocale() {
@@ -773,8 +709,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
      * does <strong>not</strong> take into consideration any locales
      * specified via the {@code Accept-Language} header.
      * @see javax.servlet.ServletRequest#getLocales()
-     * @see #addPreferredLocale(Locale)
-     * @see #setPreferredLocales(List)
      */
     @Override
     public Enumeration<Locale> getLocales() {
@@ -914,15 +848,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         return this.authType;
     }
 
-    public void setCookies(@Nullable Cookie... cookies) {
-        this.cookies = (ObjectUtils.isEmpty(cookies) ? null : cookies);
-        if (this.cookies == null) {
-            removeHeader(HttpHeaders.COOKIE);
-        }
-        else {
-            doAddHeaderValue(HttpHeaders.COOKIE, encodeCookies(this.cookies), true);
-        }
-    }
 
     private static String encodeCookies(@NonNull Cookie... cookies) {
         return Arrays.stream(cookies)
@@ -934,75 +859,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     @Nullable
     public Cookie[] getCookies() {
         return this.cookies;
-    }
-
-    /**
-     * Add an HTTP header entry for the given name.
-     * <p>While this method can take any {@code Object} as a parameter,
-     * it is recommended to use the following types:
-     * <ul>
-     * <li>String or any Object to be converted using {@code toString()}; see {@link #getHeader}.</li>
-     * <li>String, Number, or Date for date headers; see {@link #getDateHeader}.</li>
-     * <li>String or Number for integer headers; see {@link #getIntHeader}.</li>
-     * <li>{@code String[]} or {@code Collection<String>} for multiple values; see {@link #getHeaders}.</li>
-     * </ul>
-     * @see #getHeaderNames
-     * @see #getHeaders
-     * @see #getHeader
-     * @see #getDateHeader
-     */
-    public void addHeader(String name, Object value) {
-        if (HttpHeaders.CONTENT_TYPE.equalsIgnoreCase(name) &&
-                !this.headers.containsKey(HttpHeaders.CONTENT_TYPE)) {
-            setContentType(value.toString());
-        }
-        else if (HttpHeaders.ACCEPT_LANGUAGE.equalsIgnoreCase(name) &&
-                !this.headers.containsKey(HttpHeaders.ACCEPT_LANGUAGE)) {
-            try {
-                HttpHeaders headers = new HttpHeaders();
-                headers.add(HttpHeaders.ACCEPT_LANGUAGE, value.toString());
-                List<Locale> locales = headers.getAcceptLanguageAsLocales();
-                this.locales.clear();
-                this.locales.addAll(locales);
-                if (this.locales.isEmpty()) {
-                    this.locales.add(Locale.ENGLISH);
-                }
-            }
-            catch (IllegalArgumentException ex) {
-                // Invalid Accept-Language format -> just store plain header
-            }
-            doAddHeaderValue(name, value, true);
-        }
-        else {
-            doAddHeaderValue(name, value, false);
-        }
-    }
-
-    private void doAddHeaderValue(String name, @Nullable Object value, boolean replace) {
-        HeaderValueHolder header = this.headers.get(name);
-        Assert.notNull(value, "Header value must not be null");
-        if (header == null || replace) {
-            header = new HeaderValueHolder();
-            this.headers.put(name, header);
-        }
-        if (value instanceof Collection) {
-            header.addValues((Collection<?>) value);
-        }
-        else if (value.getClass().isArray()) {
-            header.addValueArray(value);
-        }
-        else {
-            header.addValue(value);
-        }
-    }
-
-    /**
-     * Remove already registered entries for the specified HTTP header, if any.
-     * @since 4.3.20
-     */
-    public void removeHeader(String name) {
-        Assert.notNull(name, "Header name must not be null");
-        this.headers.remove(name);
     }
 
     /**
@@ -1019,24 +875,11 @@ public class NettyHttpServletRequest implements HttpServletRequest {
      */
     @Override
     public long getDateHeader(String name) {
-        HeaderValueHolder header = this.headers.get(name);
-        Object value = (header != null ? header.getValue() : null);
-        if (value instanceof Date) {
-            return ((Date) value).getTime();
+        String value = getHeader(name);
+        if(StringUtils.isEmpty(value)){
+            return -1;
         }
-        else if (value instanceof Number) {
-            return ((Number) value).longValue();
-        }
-        else if (value instanceof String) {
-            return parseDateHeader(name, (String) value);
-        }
-        else if (value != null) {
-            throw new IllegalArgumentException(
-                    "Value for header '" + name + "' is not a Date, Number, or String: " + value);
-        }
-        else {
-            return -1L;
-        }
+        return parseDateHeader(name, (String) value);
     }
 
     private long parseDateHeader(String name, String value) {
@@ -1056,37 +899,49 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     @Override
     @Nullable
     public String getHeader(String name) {
-        HeaderValueHolder header = this.headers.get(name);
-        return (header != null ? header.getStringValue() : null);
+        Object value = this.fullHttpRequest.headers().get((CharSequence) name);
+        return value == null? null :String.valueOf(value);
     }
 
     @Override
     public Enumeration<String> getHeaders(String name) {
-        HeaderValueHolder header = this.headers.get(name);
-        return Collections.enumeration(header != null ? header.getStringValues() : new LinkedList<>());
+        Collection collection = this.fullHttpRequest.headers().getAll((CharSequence)name);
+        return new Enumeration<String>() {
+            private Iterator iterator = collection.iterator();
+            @Override
+            public boolean hasMoreElements() {
+                return iterator.hasNext();
+            }
+            @Override
+            public String nextElement() {
+                return iterator.next().toString();
+            }
+        };
     }
 
     @Override
     public Enumeration<String> getHeaderNames() {
-        return Collections.enumeration(this.headers.keySet());
+        Set nameSet = this.fullHttpRequest.headers().names();
+        return new Enumeration<String>() {
+            private Iterator iterator = nameSet.iterator();
+            @Override
+            public boolean hasMoreElements() {
+                return iterator.hasNext();
+            }
+            @Override
+            public String nextElement() {
+                return iterator.next().toString();
+            }
+        };
     }
 
     @Override
     public int getIntHeader(String name) {
-        HeaderValueHolder header = this.headers.get(name);
-        Object value = (header != null ? header.getValue() : null);
-        if (value instanceof Number) {
-            return ((Number) value).intValue();
-        }
-        else if (value instanceof String) {
-            return Integer.parseInt((String) value);
-        }
-        else if (value != null) {
-            throw new NumberFormatException("Value for header '" + name + "' is not a Number: " + value);
-        }
-        else {
+        String headerStringValue = getHeader(name);
+        if (headerStringValue == null) {
             return -1;
         }
+        return Integer.parseInt(headerStringValue);
     }
 
     public void setMethod(@Nullable String method) {

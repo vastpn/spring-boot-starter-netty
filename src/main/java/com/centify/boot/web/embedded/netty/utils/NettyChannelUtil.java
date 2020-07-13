@@ -1,6 +1,7 @@
 package com.centify.boot.web.embedded.netty.utils;
 
 import com.alibaba.fastjson.JSONObject;
+import com.centify.boot.web.embedded.netty.constant.HttpHeaderConstants;
 import com.centify.boot.web.embedded.netty.context.NettyServletContext;
 import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletRequest;
 import io.netty.buffer.ByteBuf;
@@ -157,10 +158,6 @@ public final class NettyChannelUtil {
             servletRequest.setServerPort(uriComponents.getPort());
         }
 
-
-        /**header 参数信息*/
-        setRequestHeader(fullHttpRequest, servletRequest);
-
         setRequestParams(fullHttpRequest, servletRequest, uriComponents);
 
         return servletRequest;
@@ -180,9 +177,11 @@ public final class NettyChannelUtil {
     }
 
     private static void innerPostParams(FullHttpRequest fullHttpRequest, NettyHttpServletRequest servletRequest) {
-        Optional.ofNullable(fullHttpRequest.headers().get("Content-Type").trim().toLowerCase())
+        Optional.ofNullable(fullHttpRequest.headers().get(HttpHeaderConstants.CONTENT_TYPE).trim().toLowerCase())
                 .ifPresent(item -> {
-                    if (item.contains("multipart/form-data") || item.contains("application/x-www-form-urlencoded")) {
+                    /*JSON、文件无需再次设置，在创建Request时 InputStream 已处理*/
+                    /*Form 表单参数设置*/
+                    if (item.contains(HttpHeaderConstants.MULTIPART_FORM_DATA) || item.contains(HttpHeaderConstants.APPLICATION_X_WWW_FORM_URLENCODED)) {
                         HttpPostRequestDecoder decoder = new HttpPostRequestDecoder(new DefaultHttpDataFactory(false), fullHttpRequest);
                         servletRequest.setParameters(decoder.getBodyHttpDatas().parallelStream()
                                 .filter((data) -> data.getHttpDataType().equals(InterfaceHttpData.HttpDataType.Attribute))
@@ -191,10 +190,8 @@ public final class NettyChannelUtil {
                                         MemoryAttribute::getName,
                                         MemoryAttribute::getValue,
                                         (key1, key2) -> key2)));
-//                        servletRequest.setContent(ByteBufUtil.getBytes(fullHttpRequest.content()));
 
                     } else if (item.contains("application/json")) {
-//                        servletRequest.setContent(ByteBufUtil.getBytes(fullHttpRequest.content()));
                     }
                 });
     }
@@ -208,15 +205,6 @@ public final class NettyChannelUtil {
                                     UriUtils.decode(entry.getKey(), CharsetUtil.UTF_8),
                                     UriUtils.decode(item, CharsetUtil.UTF_8));
                         });
-                    });
-                });
-    }
-
-    private static void setRequestHeader(FullHttpRequest fullHttpRequest, NettyHttpServletRequest servletRequest) {
-        Optional.ofNullable(fullHttpRequest.headers().names())
-                .ifPresent((headers) -> {
-                    headers.parallelStream().forEach((item) -> {
-                        servletRequest.addHeader(item, fullHttpRequest.headers().get(item));
                     });
                 });
     }
