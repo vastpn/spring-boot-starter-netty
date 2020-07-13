@@ -2,6 +2,7 @@ package com.centify.boot.web.embedded.netty.utils;
 
 import com.alibaba.fastjson.JSONObject;
 import com.centify.boot.web.embedded.netty.context.NettyServletContext;
+import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
@@ -15,7 +16,6 @@ import io.netty.handler.codec.http.multipart.MemoryAttribute;
 import io.netty.util.CharsetUtil;
 import io.netty.util.ReferenceCountUtil;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
@@ -138,13 +138,13 @@ public final class NettyChannelUtil {
      * @return org.springframework.mock.web.MockHttpServletRequest
      * <pre>
      */
-    public static MockHttpServletRequest createServletRequest(ChannelHandlerContext ctx,
+    public static NettyHttpServletRequest createServletRequest(ChannelHandlerContext ctx,
                                                                NettyServletContext servletContext,
                                                                FullHttpRequest fullHttpRequest) {
 
         UriComponents uriComponents = UriComponentsBuilder.fromUriString(fullHttpRequest.uri()).build();
 
-        MockHttpServletRequest servletRequest = new MockHttpServletRequest(servletContext,fullHttpRequest.method().name(),uriComponents.getPath());
+        NettyHttpServletRequest servletRequest = new NettyHttpServletRequest(servletContext,fullHttpRequest.method().name(),uriComponents.getPath(),fullHttpRequest);
         servletRequest.setPathInfo(uriComponents.getPath());
 
         if (uriComponents.getScheme() != null) {
@@ -166,7 +166,7 @@ public final class NettyChannelUtil {
         return servletRequest;
     }
 
-    private static void setRequestParams(FullHttpRequest fullHttpRequest, MockHttpServletRequest servletRequest, UriComponents uriComponents) {
+    private static void setRequestParams(FullHttpRequest fullHttpRequest, NettyHttpServletRequest servletRequest, UriComponents uriComponents) {
         /*URL 转码 */
         if (uriComponents.getQuery() != null) {
             servletRequest.setQueryString(UriUtils.decode(uriComponents.getQuery(), CharsetUtil.UTF_8));
@@ -179,15 +179,11 @@ public final class NettyChannelUtil {
         }
     }
 
-    private static void innerPostParams(FullHttpRequest fullHttpRequest, MockHttpServletRequest servletRequest) {
+    private static void innerPostParams(FullHttpRequest fullHttpRequest, NettyHttpServletRequest servletRequest) {
         Optional.ofNullable(fullHttpRequest.headers().get("Content-Type").trim().toLowerCase())
                 .ifPresent(item -> {
                     if (item.contains("multipart/form-data") || item.contains("application/x-www-form-urlencoded")) {
                         HttpPostRequestDecoder decoder = new HttpPostRequestDecoder(new DefaultHttpDataFactory(false), fullHttpRequest);
-
-
-
-
                         servletRequest.setParameters(decoder.getBodyHttpDatas().parallelStream()
                                 .filter((data) -> data.getHttpDataType().equals(InterfaceHttpData.HttpDataType.Attribute))
                                 .map((convData) -> (MemoryAttribute) convData)
@@ -195,15 +191,15 @@ public final class NettyChannelUtil {
                                         MemoryAttribute::getName,
                                         MemoryAttribute::getValue,
                                         (key1, key2) -> key2)));
-                        servletRequest.setContent(ByteBufUtil.getBytes(fullHttpRequest.content()));
+//                        servletRequest.setContent(ByteBufUtil.getBytes(fullHttpRequest.content()));
 
                     } else if (item.contains("application/json")) {
-                        servletRequest.setContent(ByteBufUtil.getBytes(fullHttpRequest.content()));
+//                        servletRequest.setContent(ByteBufUtil.getBytes(fullHttpRequest.content()));
                     }
                 });
     }
 
-    private static void innerGetParams(MockHttpServletRequest servletRequest, UriComponents uriComponents) {
+    private static void innerGetParams(NettyHttpServletRequest servletRequest, UriComponents uriComponents) {
         Optional.ofNullable(uriComponents.getQueryParams().entrySet())
                 .ifPresent((entrys) -> {
                     entrys.parallelStream().forEach((entry) -> {
@@ -216,7 +212,7 @@ public final class NettyChannelUtil {
                 });
     }
 
-    private static void setRequestHeader(FullHttpRequest fullHttpRequest, MockHttpServletRequest servletRequest) {
+    private static void setRequestHeader(FullHttpRequest fullHttpRequest, NettyHttpServletRequest servletRequest) {
         Optional.ofNullable(fullHttpRequest.headers().names())
                 .ifPresent((headers) -> {
                     headers.parallelStream().forEach((item) -> {

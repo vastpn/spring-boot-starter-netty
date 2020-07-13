@@ -1,6 +1,7 @@
 package com.centify.boot.web.embedded.netty.handler;
 
 import com.centify.boot.web.embedded.netty.context.NettyServletContext;
+import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletRequest;
 import com.centify.boot.web.embedded.netty.servlet.NettyRequestDispatcher;
 import com.centify.boot.web.embedded.netty.utils.NettyChannelUtil;
 import io.netty.buffer.Unpooled;
@@ -9,7 +10,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.ReferenceCountUtil;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
@@ -26,7 +26,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
  * <pre>
  */
 @ChannelHandler.Sharable
-public class DispatcherServletHandler extends SimpleChannelInboundHandler<MockHttpServletRequest> {
+public class DispatcherServletHandler extends SimpleChannelInboundHandler<NettyHttpServletRequest> {
     private NettyServletContext servletContext;
 
 
@@ -47,9 +47,9 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<MockHt
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, MockHttpServletRequest msg) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, NettyHttpServletRequest msg) throws Exception {
         MockHttpServletResponse servletResponse = new MockHttpServletResponse();
-        NettyRequestDispatcher dispatcherServlet = (NettyRequestDispatcher) servletContext.getRequestDispatcher(((MockHttpServletRequest) msg).getRequestURI());
+        NettyRequestDispatcher dispatcherServlet = (NettyRequestDispatcher) servletContext.getRequestDispatcher(msg.getRequestURI());
         dispatcherServlet.dispatch(msg, servletResponse);
         if (!msg.isActive()){
             ctx.close();
