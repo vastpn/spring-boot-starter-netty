@@ -16,6 +16,7 @@ import java.nio.channels.FileChannel;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * <pre>
@@ -81,10 +82,10 @@ public class NettyServletWebApplication {
         result.put("status","success");
         result.put("files",file.toString());
         result.put("getContentType",file.getContentType());
-        result.put("getName",file.getName());
+        result.put("getName",file.getOriginalFilename());
 
         try {
-            RandomAccessFile file1=new RandomAccessFile("D:/AAAA"+file.getName(),"rw");
+            RandomAccessFile file1=new RandomAccessFile("D:/AAAA"+file.getOriginalFilename(),"rw");
             FileChannel channel=file1.getChannel();
             channel.write(Unpooled.wrappedBuffer(file.getBytes()).nioBuffer());
             channel.close();
@@ -93,6 +94,18 @@ public class NettyServletWebApplication {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        return result;
+    }
+    @PostMapping("/files")
+    public Object mult(@RequestParam("files") MultipartFile[] files){
+        Map result = new HashMap();
+        result.put("status","success");
+        Optional.ofNullable(files).ifPresent(items->{
+            for(MultipartFile mu:files){
+                result.put("file"+mu.getOriginalFilename(),mu.getOriginalFilename());
+            }
+        });
 
         return result;
     }
