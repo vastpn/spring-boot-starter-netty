@@ -4,13 +4,23 @@ import com.centify.boot.web.embedded.netty.context.NettyServletContext;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
+import io.netty.handler.codec.http.multipart.DefaultHttpDataFactory;
+import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
+import io.netty.handler.codec.http.multipart.InterfaceHttpData;
+import io.netty.handler.codec.http.multipart.MemoryAttribute;
+import io.netty.util.CharsetUtil;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.mock.web.MockAsyncContext;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.util.*;
+import org.springframework.web.util.UriComponents;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 
 import javax.servlet.*;
 import javax.servlet.http.*;
@@ -101,7 +111,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     // ---------------------------------------------------------------------
 
     private final ServletContext servletContext;
-
+    private UriComponents uriComponents;
     private boolean active = true;
 
 
@@ -259,15 +269,76 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         this.locales.add(Locale.ENGLISH);
     }
 
-    public NettyHttpServletRequest(@Nullable ServletContext servletContext, @Nullable String method, @Nullable String requestURI,FullHttpRequest fullHttpRequest) {
+    public NettyHttpServletRequest(@Nullable ServletContext servletContext, @Nullable String method, FullHttpRequest fullHttpRequest) {
+        this.uriComponents = UriComponentsBuilder.fromUriString(fullHttpRequest.uri()).build();
         this.servletContext = servletContext;
         this.method = method;
-        this.requestURI = requestURI;
+        this.requestURI = uriComponents.getPath();
         this.locales.add(Locale.ENGLISH);
         this.fullHttpRequest = fullHttpRequest;
         this.inputStream.wrap(fullHttpRequest.content());
+
+        /**/
+        this.setPathInfo(uriComponents.getPath());
+
+        if (uriComponents.getScheme() != null) {
+            this.setScheme(uriComponents.getScheme());
+        }
+        if (uriComponents.getHost() != null) {
+            this.setServerName(uriComponents.getHost());
+        }
+        if (uriComponents.getPort() != -1) {
+            this.setServerPort(uriComponents.getPort());
+        }
+        setRequestParams(fullHttpRequest, this, uriComponents);
+    }
+    private static void setRequestParams(FullHttpRequest fullHttpRequest, NettyHttpServletRequest servletRequest, UriComponents uriComponents) {
+        /*URL 转码 */
+        if (uriComponents.getQuery() != null) {
+            servletRequest.setQueryString(UriUtils.decode(uriComponents.getQuery(), CharsetUtil.UTF_8));
+        }
+        if (HttpMethod.GET.equals(fullHttpRequest.method())) {
+            innerGetParams(servletRequest, uriComponents);
+        } else if (HttpMethod.POST.equals(fullHttpRequest.method())) {
+            innerPostParams(fullHttpRequest, servletRequest);
+        } else if (HttpMethod.DELETE.equals(fullHttpRequest.method())) {
+        }
     }
 
+    private static void innerPostParams(FullHttpRequest fullHttpRequest, NettyHttpServletRequest servletRequest) {
+        Optional.ofNullable(fullHttpRequest.headers().get(HttpHeaderNames.CONTENT_TYPE.toString()))
+                .ifPresent(item -> {
+                    /*JSON、文件无需再次设置，在创建Request时 InputStream 已处理*/
+                    /*Form 表单参数设置*/
+                    if (item.contains(MediaType.MULTIPART_FORM_DATA_VALUE) || item.contains(MediaType.APPLICATION_FORM_URLENCODED_VALUE)) {
+                        HttpPostRequestDecoder decoder = new HttpPostRequestDecoder(new DefaultHttpDataFactory(false), fullHttpRequest);
+                        servletRequest.setParameters(decoder.getBodyHttpDatas().parallelStream()
+                                .filter((data) -> data.getHttpDataType().equals(InterfaceHttpData.HttpDataType.Attribute))
+                                .map((convData) -> (MemoryAttribute) convData)
+                                .collect(Collectors.toMap(
+                                        MemoryAttribute::getName,
+                                        MemoryAttribute::getValue,
+                                        (key1, key2) -> key2)));
+
+                    }
+                    /*JSON无需再次获取数据 ，已通过 流获取*/
+//                    else if (item.contains(MediaType.APPLICATION_JSON_VALUE)) {
+//                    }
+                });
+    }
+
+    private static void innerGetParams(NettyHttpServletRequest servletRequest, UriComponents uriComponents) {
+        Optional.ofNullable(uriComponents.getQueryParams().entrySet())
+                .ifPresent((entrys) -> {
+                    entrys.parallelStream().forEach((entry) -> {
+                        entry.getValue().parallelStream().forEach((item) -> {
+                            servletRequest.addParameter(
+                                    UriUtils.decode(entry.getKey(), CharsetUtil.UTF_8),
+                                    UriUtils.decode(item, CharsetUtil.UTF_8));
+                        });
+                    });
+                });
+    }
 
     // ---------------------------------------------------------------------
     // Lifecycle methods

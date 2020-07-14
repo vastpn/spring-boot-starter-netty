@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--启动项设置为 trace，加载 springboot 启动内部各种详细输出-->
+<Configuration status="OFF">
+    <Appenders>
+        <!--添加一个控制台追加器-->
+        <Console name="Console" target="SYSTEM_OUT" follow="true">
+            <PatternLayout>
+                <pattern>[%-5p] %d %c - %m%n</pattern>
+            </PatternLayout>
+        </Console>
+        <!--添加一个文件追加器-->
+        <File name="File" fileName="logs/jvv-bu-sample/jvv-bu-sample.log"  append="false">
+            <PatternLayout>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %class{36} %L %M - %msg%xEx%n</pattern>
+            </PatternLayout>
+        </File>
+    </Appenders>
+    <Loggers>
+        <!--根记录，调试模式，线上模式更改为INFO-->
+        <Root level="INFO">
+            <AppenderRef ref="Console" />
+            <!-- AppenderRef 可以控制文件输出对象-->
+            <AppenderRef ref="File" />
+        </Root>
+        <Logger name="org.springframework" level="INFO" />
+        <Logger name="zaxxer.hikari" level="INFO" />
+        <Logger name="org.thymeleaf" level="INFO" />
+        <!--调试模式，线上模式更改为INFO-->
+        <Logger name="com.ibatis" level="INFO"/>
+        <Logger name="java.sql" level="INFO" />
+    </Loggers>
+</Configuration>

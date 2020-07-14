@@ -142,22 +142,9 @@ public final class NettyChannelUtil {
                                                                NettyServletContext servletContext,
                                                                FullHttpRequest fullHttpRequest) {
 
-        UriComponents uriComponents = UriComponentsBuilder.fromUriString(fullHttpRequest.uri()).build();
 
-        NettyHttpServletRequest servletRequest = new NettyHttpServletRequest(servletContext,fullHttpRequest.method().name(),uriComponents.getPath(),fullHttpRequest);
-        servletRequest.setPathInfo(uriComponents.getPath());
+        NettyHttpServletRequest servletRequest = new NettyHttpServletRequest(servletContext,fullHttpRequest.method().name(),fullHttpRequest);
 
-        if (uriComponents.getScheme() != null) {
-            servletRequest.setScheme(uriComponents.getScheme());
-        }
-        if (uriComponents.getHost() != null) {
-            servletRequest.setServerName(uriComponents.getHost());
-        }
-        if (uriComponents.getPort() != -1) {
-            servletRequest.setServerPort(uriComponents.getPort());
-        }
-
-        setRequestParams(fullHttpRequest, servletRequest, uriComponents);
 
         return servletRequest;
     }
