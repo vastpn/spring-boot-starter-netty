@@ -1,7 +1,6 @@
 package com.centify.boot.web.embedded.netty.utils;
 
 import com.alibaba.fastjson.JSONObject;
-import com.centify.boot.web.embedded.netty.constant.HttpHeaderConstants;
 import com.centify.boot.web.embedded.netty.context.NettyServletContext;
 import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletRequest;
 import io.netty.buffer.ByteBuf;
@@ -177,11 +176,11 @@ public final class NettyChannelUtil {
     }
 
     private static void innerPostParams(FullHttpRequest fullHttpRequest, NettyHttpServletRequest servletRequest) {
-        Optional.ofNullable(fullHttpRequest.headers().get(HttpHeaderConstants.CONTENT_TYPE).trim().toLowerCase())
+        Optional.ofNullable(fullHttpRequest.headers().get(HttpHeaderNames.CONTENT_TYPE.toString()))
                 .ifPresent(item -> {
                     /*JSON、文件无需再次设置，在创建Request时 InputStream 已处理*/
                     /*Form 表单参数设置*/
-                    if (item.contains(HttpHeaderConstants.MULTIPART_FORM_DATA) || item.contains(HttpHeaderConstants.APPLICATION_X_WWW_FORM_URLENCODED)) {
+                    if (item.contains(MediaType.MULTIPART_FORM_DATA_VALUE) || item.contains(MediaType.APPLICATION_FORM_URLENCODED_VALUE)) {
                         HttpPostRequestDecoder decoder = new HttpPostRequestDecoder(new DefaultHttpDataFactory(false), fullHttpRequest);
                         servletRequest.setParameters(decoder.getBodyHttpDatas().parallelStream()
                                 .filter((data) -> data.getHttpDataType().equals(InterfaceHttpData.HttpDataType.Attribute))
@@ -191,8 +190,10 @@ public final class NettyChannelUtil {
                                         MemoryAttribute::getValue,
                                         (key1, key2) -> key2)));
 
-                    } else if (item.contains("application/json")) {
                     }
+                    /*JSON无需再次获取数据 ，已通过 流获取*/
+//                    else if (item.contains(MediaType.APPLICATION_JSON_VALUE)) {
+//                    }
                 });
     }
 

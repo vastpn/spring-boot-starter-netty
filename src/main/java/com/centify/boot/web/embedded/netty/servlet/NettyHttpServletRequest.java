@@ -1,20 +1,21 @@
 package com.centify.boot.web.embedded.netty.servlet;
 
-import com.centify.boot.web.embedded.netty.constant.HttpHeaderConstants;
+import com.centify.boot.web.embedded.netty.context.NettyServletContext;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
-import org.springframework.mock.web.*;
+import org.springframework.mock.web.MockAsyncContext;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.util.*;
 
 import javax.servlet.*;
 import javax.servlet.http.*;
 import java.io.*;
 import java.security.Principal;
-import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -39,15 +40,8 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     private static final String HTTPS = "https";
 
-    private static final String CHARSET_PREFIX = "charset=";
-
     private static final TimeZone GMT = TimeZone.getTimeZone("GMT");
 
-    private static final ServletInputStream EMPTY_SERVLET_INPUT_STREAM =
-            new DelegatingServletInputStream(StreamUtils.emptyInput());
-
-    private static final BufferedReader EMPTY_BUFFERED_READER =
-            new BufferedReader(new StringReader(""));
 
     /**
      * Date formats as specified in the HTTP RFC.
@@ -120,9 +114,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     @Nullable
     private String characterEncoding;
 
-//    @Nullable
-//    private byte[] content;
-
     private FullHttpRequest fullHttpRequest;
 
     @Nullable
@@ -176,9 +167,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     private String authType;
 
     @Nullable
-    private Cookie[] cookies;
-
-    @Nullable
     private String method;
 
     @Nullable
@@ -205,7 +193,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     private String servletPath = "";
 
-    @Nullable
     private HttpSession session;
 
     private boolean requestedSessionIdValid = true;
@@ -223,7 +210,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     /**
      * Create a new {@code NettyHttpServletRequest} with a default
-     * {@link MockServletContext}.
+     * {@link NettyServletContext}.
      * @see #NettyHttpServletRequest(ServletContext, String, String)
      */
     public NettyHttpServletRequest() {
@@ -232,7 +219,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     /**
      * Create a new {@code NettyHttpServletRequest} with a default
-     * {@link MockServletContext}.
+     * {@link NettyServletContext}.
      * @param method the request method (may be {@code null})
      * @param requestURI the request URI (may be {@code null})
      * @see #setMethod
@@ -246,7 +233,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     /**
      * Create a new {@code NettyHttpServletRequest} with the supplied {@link ServletContext}.
      * @param servletContext the ServletContext that the request runs in
-     * (may be {@code null} to use a default {@link MockServletContext})
+     * (may be {@code null} to use a default {@link NettyServletContext})
      * @see #NettyHttpServletRequest(ServletContext, String, String)
      */
     public NettyHttpServletRequest(@Nullable ServletContext servletContext) {
@@ -258,22 +245,22 @@ public class NettyHttpServletRequest implements HttpServletRequest {
      * {@code method}, and {@code requestURI}.
      * <p>The preferred locale will be set to {@link Locale#ENGLISH}.
      * @param servletContext the ServletContext that the request runs in (may be
-     * {@code null} to use a default {@link MockServletContext})
+     * {@code null} to use a default {@link NettyServletContext})
      * @param method the request method (may be {@code null})
      * @param requestURI the request URI (may be {@code null})
      * @see #setMethod
      * @see #setRequestURI
-     * @see MockServletContext
+     * @see NettyServletContext
      */
     public NettyHttpServletRequest(@Nullable ServletContext servletContext, @Nullable String method, @Nullable String requestURI) {
-        this.servletContext = (servletContext != null ? servletContext : new MockServletContext());
+        this.servletContext = servletContext;
         this.method = method;
         this.requestURI = requestURI;
         this.locales.add(Locale.ENGLISH);
     }
 
     public NettyHttpServletRequest(@Nullable ServletContext servletContext, @Nullable String method, @Nullable String requestURI,FullHttpRequest fullHttpRequest) {
-        this.servletContext = (servletContext != null ? servletContext : new MockServletContext());
+        this.servletContext = servletContext;
         this.method = method;
         this.requestURI = requestURI;
         this.locales.add(Locale.ENGLISH);
@@ -420,7 +407,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     @Override
     @Nullable
     public String getContentType() {
-        return getHeader(HttpHeaderConstants.CONTENT_TYPE.toString());
+        return getHeader(HttpHeaders.CONTENT_TYPE);
     }
 
     @Override
@@ -738,7 +725,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     @Override
     public RequestDispatcher getRequestDispatcher(String path) {
-        return new MockRequestDispatcher(path);
+        return this.servletContext.getRequestDispatcher(path);
     }
 
     @Override
@@ -856,9 +843,21 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     }
 
     @Override
-    @Nullable
     public Cookie[] getCookies() {
-        return this.cookies;
+
+        Set<io.netty.handler.codec.http.cookie.Cookie> cookies;
+        String value = fullHttpRequest.headers().get(HttpHeaderNames.COOKIE);
+        if (value == null) {
+            cookies = Collections.emptySet();
+        } else {
+            cookies = ServerCookieDecoder.STRICT.decode(value);
+        }
+
+        if (cookies.isEmpty()) {
+            return null;
+        }
+
+        return  cookies.toArray(new Cookie[cookies.size()]);
     }
 
     /**
@@ -1005,8 +1004,8 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     @Override
     public boolean isUserInRole(String role) {
-        return (this.userRoles.contains(role) || (this.servletContext instanceof MockServletContext &&
-                ((MockServletContext) this.servletContext).getDeclaredRoles().contains(role)));
+        return (this.userRoles.contains(role) || (this.servletContext instanceof NettyServletContext &&
+                ((NettyServletContext) this.servletContext).getDeclaredRoles().contains(role)));
     }
 
     public void setUserPrincipal(@Nullable Principal userPrincipal) {
@@ -1066,16 +1065,8 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         return this.servletPath;
     }
 
-    public void setSession(HttpSession session) {
-        this.session = session;
-        if (session instanceof MockHttpSession) {
-            MockHttpSession mockSession = ((MockHttpSession) session);
-            mockSession.access();
-        }
-    }
 
     @Override
-    @Nullable
     public HttpSession getSession(boolean create) {
         checkActive();
         // Reset session if invalidated.
