@@ -1,6 +1,7 @@
 package com.centify.boot.web.embedded.netty.servlet;
 
 import com.centify.boot.web.embedded.netty.context.NettyServletContext;
+import com.centify.boot.web.embedded.netty.factory.NettyServletWebServerFactory;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaderNames;
@@ -17,14 +18,21 @@ import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.mock.web.MockAsyncContext;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.util.*;
+import org.springframework.util.Assert;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
 import javax.servlet.*;
 import javax.servlet.http.*;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.net.InetSocketAddress;
 import java.security.Principal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -126,6 +134,8 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     private FullHttpRequest fullHttpRequest;
 
+    private InetSocketAddress remoteInetSocketAddress;
+
     @Nullable
     private NettyServletInputStream inputStream = new NettyServletInputStream();
 
@@ -142,22 +152,10 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     private int serverPort = DEFAULT_SERVER_PORT;
 
-    private String remoteAddr = DEFAULT_REMOTE_ADDR;
-
-    private String remoteHost = DEFAULT_REMOTE_HOST;
-
     /** List of locales in descending order. */
     private final LinkedList<Locale> locales = new LinkedList<>();
 
     private boolean secure = false;
-
-    private int remotePort = DEFAULT_SERVER_PORT;
-
-    private String localName = DEFAULT_SERVER_NAME;
-
-    private String localAddr = DEFAULT_SERVER_ADDR;
-
-    private int localPort = DEFAULT_SERVER_PORT;
 
     private boolean asyncStarted = false;
 
@@ -174,12 +172,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     // ---------------------------------------------------------------------
 
     @Nullable
-    private String authType;
-
-    @Nullable
-    private String method;
-
-    @Nullable
     private String pathInfo;
 
     private String contextPath = "";
@@ -187,16 +179,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     @Nullable
     private String queryString;
 
-    @Nullable
-    private String remoteUser;
-
     private final Set<String> userRoles = new HashSet<>();
-
-    @Nullable
-    private Principal userPrincipal;
-
-    @Nullable
-    private String requestedSessionId;
 
     @Nullable
     private String requestURI;
@@ -213,72 +196,14 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     private final MultiValueMap<String, Part> parts = new LinkedMultiValueMap<>();
 
-
-    // ---------------------------------------------------------------------
-    // Constructors
-    // ---------------------------------------------------------------------
-
-    /**
-     * Create a new {@code NettyHttpServletRequest} with a default
-     * {@link NettyServletContext}.
-     * @see #NettyHttpServletRequest(ServletContext, String, String)
-     */
-    public NettyHttpServletRequest() {
-        this(null, "", "");
-    }
-
-    /**
-     * Create a new {@code NettyHttpServletRequest} with a default
-     * {@link NettyServletContext}.
-     * @param method the request method (may be {@code null})
-     * @param requestURI the request URI (may be {@code null})
-     * @see #setMethod
-     * @see #setRequestURI
-     * @see #NettyHttpServletRequest(ServletContext, String, String)
-     */
-    public NettyHttpServletRequest(@Nullable String method, @Nullable String requestURI) {
-        this(null, method, requestURI);
-    }
-
-    /**
-     * Create a new {@code NettyHttpServletRequest} with the supplied {@link ServletContext}.
-     * @param servletContext the ServletContext that the request runs in
-     * (may be {@code null} to use a default {@link NettyServletContext})
-     * @see #NettyHttpServletRequest(ServletContext, String, String)
-     */
-    public NettyHttpServletRequest(@Nullable ServletContext servletContext) {
-        this(servletContext, "", "");
-    }
-
-    /**
-     * Create a new {@code NettyHttpServletRequest} with the supplied {@link ServletContext},
-     * {@code method}, and {@code requestURI}.
-     * <p>The preferred locale will be set to {@link Locale#ENGLISH}.
-     * @param servletContext the ServletContext that the request runs in (may be
-     * {@code null} to use a default {@link NettyServletContext})
-     * @param method the request method (may be {@code null})
-     * @param requestURI the request URI (may be {@code null})
-     * @see #setMethod
-     * @see #setRequestURI
-     * @see NettyServletContext
-     */
-    public NettyHttpServletRequest(@Nullable ServletContext servletContext, @Nullable String method, @Nullable String requestURI) {
+    public NettyHttpServletRequest(@Nullable ServletContext servletContext, FullHttpRequest fullHttpRequest, InetSocketAddress remoteInetSocketAddress) {
         this.servletContext = servletContext;
-        this.method = method;
-        this.requestURI = requestURI;
-        this.locales.add(Locale.ENGLISH);
-    }
-
-    public NettyHttpServletRequest(@Nullable ServletContext servletContext, @Nullable String method, FullHttpRequest fullHttpRequest) {
+        this.fullHttpRequest = fullHttpRequest;
+        this.remoteInetSocketAddress = remoteInetSocketAddress;
         this.uriComponents = UriComponentsBuilder.fromUriString(fullHttpRequest.uri()).build();
-        this.servletContext = servletContext;
-        this.method = method;
         this.requestURI = uriComponents.getPath();
         this.locales.add(Locale.ENGLISH);
-        this.fullHttpRequest = fullHttpRequest;
         this.inputStream.wrap(fullHttpRequest.content());
-
-        /**/
         this.setPathInfo(uriComponents.getPath());
 
         if (uriComponents.getScheme() != null) {
@@ -290,29 +215,29 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         if (uriComponents.getPort() != -1) {
             this.setServerPort(uriComponents.getPort());
         }
-        setRequestParams(fullHttpRequest, this, uriComponents);
+        setRequestParams();
     }
-    private static void setRequestParams(FullHttpRequest fullHttpRequest, NettyHttpServletRequest servletRequest, UriComponents uriComponents) {
+    private void setRequestParams() {
         /*URL 转码 */
         if (uriComponents.getQuery() != null) {
-            servletRequest.setQueryString(UriUtils.decode(uriComponents.getQuery(), CharsetUtil.UTF_8));
+            this.queryString = UriUtils.decode(uriComponents.getQuery(), CharsetUtil.UTF_8);
         }
         if (HttpMethod.GET.equals(fullHttpRequest.method())) {
-            innerGetParams(servletRequest, uriComponents);
+            innerGetParams();
         } else if (HttpMethod.POST.equals(fullHttpRequest.method())) {
-            innerPostParams(fullHttpRequest, servletRequest);
+            innerPostParams();
         } else if (HttpMethod.DELETE.equals(fullHttpRequest.method())) {
         }
     }
 
-    private static void innerPostParams(FullHttpRequest fullHttpRequest, NettyHttpServletRequest servletRequest) {
+    private void innerPostParams() {
         Optional.ofNullable(fullHttpRequest.headers().get(HttpHeaderNames.CONTENT_TYPE.toString()))
                 .ifPresent(item -> {
                     /*JSON、文件无需再次设置，在创建Request时 InputStream 已处理*/
                     /*Form 表单参数设置*/
                     if (item.contains(MediaType.MULTIPART_FORM_DATA_VALUE) || item.contains(MediaType.APPLICATION_FORM_URLENCODED_VALUE)) {
                         HttpPostRequestDecoder decoder = new HttpPostRequestDecoder(new DefaultHttpDataFactory(false), fullHttpRequest);
-                        servletRequest.setParameters(decoder.getBodyHttpDatas().parallelStream()
+                        this.setParameters(decoder.getBodyHttpDatas().parallelStream()
                                 .filter((data) -> data.getHttpDataType().equals(InterfaceHttpData.HttpDataType.Attribute))
                                 .map((convData) -> (MemoryAttribute) convData)
                                 .collect(Collectors.toMap(
@@ -327,12 +252,12 @@ public class NettyHttpServletRequest implements HttpServletRequest {
                 });
     }
 
-    private static void innerGetParams(NettyHttpServletRequest servletRequest, UriComponents uriComponents) {
+    private void innerGetParams() {
         Optional.ofNullable(uriComponents.getQueryParams().entrySet())
                 .ifPresent((entrys) -> {
                     entrys.parallelStream().forEach((entry) -> {
                         entry.getValue().parallelStream().forEach((item) -> {
-                            servletRequest.addParameter(
+                            this.addParameter(
                                     UriUtils.decode(entry.getKey(), CharsetUtil.UTF_8),
                                     UriUtils.decode(item, CharsetUtil.UTF_8));
                         });
@@ -696,22 +621,16 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         return reader;
     }
 
-    public void setRemoteAddr(String remoteAddr) {
-        this.remoteAddr = remoteAddr;
-    }
-
     @Override
     public String getRemoteAddr() {
-        return this.remoteAddr;
-    }
-
-    public void setRemoteHost(String remoteHost) {
-        this.remoteHost = remoteHost;
+        return this.remoteInetSocketAddress.getAddress().getHostAddress();
     }
 
     @Override
     public String getRemoteHost() {
-        return this.remoteHost;
+
+        /**getHostString 不反向查找，能提升部分性能*/
+        return this.remoteInetSocketAddress.getHostString();
     }
 
     @Override
@@ -805,40 +724,24 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         return this.servletContext.getRealPath(path);
     }
 
-    public void setRemotePort(int remotePort) {
-        this.remotePort = remotePort;
-    }
-
     @Override
     public int getRemotePort() {
-        return this.remotePort;
+        return this.remoteInetSocketAddress.getPort();
     }
 
-    public void setLocalName(String localName) {
-        this.localName = localName;
-    }
 
     @Override
     public String getLocalName() {
-        return this.localName;
+        return NettyServletWebServerFactory.serverAddress.getHostString();
     }
-
-    public void setLocalAddr(String localAddr) {
-        this.localAddr = localAddr;
-    }
-
     @Override
     public String getLocalAddr() {
-        return this.localAddr;
-    }
-
-    public void setLocalPort(int localPort) {
-        this.localPort = localPort;
+        return NettyServletWebServerFactory.serverAddress.getAddress().getHostAddress();
     }
 
     @Override
     public int getLocalPort() {
-        return this.localPort;
+        return NettyServletWebServerFactory.serverAddress.getPort();
     }
 
     @Override
@@ -896,14 +799,17 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     // HttpServletRequest interface
     // ---------------------------------------------------------------------
 
-    public void setAuthType(@Nullable String authType) {
-        this.authType = authType;
-    }
-
+    /**
+     * 返回用于保护servlet的认证方案的名称。所有Servlet容器都支持基本，表单和客户端证书身份验证，并且可能还支持摘要身份验证。如果servlet未通过身份验证，null则返回。
+     * 与CGI变量AUTH_TYPE的值相同。
+     *
+     * 返回值：
+     * 静态成员BASIC_AUTH，FORM_AUTH，CLIENT_CERT_AUTH，DIGEST_AUTH（适用于==比较）之一或表示身份验证方案的特定于容器的字符串，或者 null是否未对请求进行身份验证。
+     * */
     @Override
-    @Nullable
     public String getAuthType() {
-        return this.authType;
+        //TODO 获取HTTP身份认证类型
+        return null;
     }
 
 
@@ -1014,14 +920,10 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         return Integer.parseInt(headerStringValue);
     }
 
-    public void setMethod(@Nullable String method) {
-        this.method = method;
-    }
-
     @Override
     @Nullable
     public String getMethod() {
-        return this.method;
+        return this.fullHttpRequest.method().name();
     }
 
     public void setPathInfo(@Nullable String pathInfo) {
@@ -1059,14 +961,11 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         return this.queryString;
     }
 
-    public void setRemoteUser(@Nullable String remoteUser) {
-        this.remoteUser = remoteUser;
-    }
-
     @Override
     @Nullable
     public String getRemoteUser() {
-        return this.remoteUser;
+        //TODO 暂未实现RemoteUser
+        return null;
     }
 
     public void addUserRole(String role) {
@@ -1078,25 +977,16 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         return (this.userRoles.contains(role) || (this.servletContext instanceof NettyServletContext &&
                 ((NettyServletContext) this.servletContext).getDeclaredRoles().contains(role)));
     }
-
-    public void setUserPrincipal(@Nullable Principal userPrincipal) {
-        this.userPrincipal = userPrincipal;
-    }
-
     @Override
-    @Nullable
     public Principal getUserPrincipal() {
-        return this.userPrincipal;
-    }
-
-    public void setRequestedSessionId(@Nullable String requestedSessionId) {
-        this.requestedSessionId = requestedSessionId;
+        //TODO 暂未实现Principal
+        return null;
     }
 
     @Override
-    @Nullable
     public String getRequestedSessionId() {
-        return this.requestedSessionId;
+        //TODO 暂未实现Session
+        return null;
     }
 
     public void setRequestURI(@Nullable String requestURI) {
@@ -1216,9 +1106,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     @Override
     public void logout() throws ServletException {
-        this.userPrincipal = null;
-        this.remoteUser = null;
-        this.authType = null;
     }
 
     public void addPart(Part part) {

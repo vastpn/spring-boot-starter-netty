@@ -2,7 +2,9 @@ package com.centify.boot.web.embedded.netty.handler;
 
 import com.centify.boot.web.embedded.netty.constant.NettyConstant;
 import com.centify.boot.web.embedded.netty.context.NettyServletContext;
+import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletRequest;
 import com.centify.boot.web.embedded.netty.utils.NettyChannelUtil;
+import com.centify.boot.web.embedded.netty.utils.SpringContextUtil;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -12,7 +14,10 @@ import io.netty.util.ReferenceCountUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.Environment;
 
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
 /**
@@ -50,19 +55,35 @@ public class FaviconHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest msg) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
         try {
-            if (!msg.decoderResult().isSuccess() ||
-                    NettyConstant.HTTP_REQUEST_FAVICON.equalsIgnoreCase(msg.uri())) {
+            if (!fullHttpRequest.decoderResult().isSuccess() ||
+                    NettyConstant.HTTP_REQUEST_FAVICON.equalsIgnoreCase(fullHttpRequest.uri())) {
                 ctx.close();
                 return;
             }
-            ctx.fireChannelRead(NettyChannelUtil.createServletRequest(ctx, servletContext, msg));
+
+//            Environment environment = SpringContextUtil.getBean(Environment.class);
+//            System.out.println("application.name="+environment.getProperty("spring.application.name"));
+//            System.out.println("server.port="+environment.getProperty("server.port"));
+
+//            System.out.println("getAddress().getHostAddress()="+remoteInetSocketAddress.getAddress().getHostAddress());
+//            System.out.println("getAddress().getHostName()="+remoteInetSocketAddress.getAddress().getHostName());
+//            System.out.println("getAddress().getCanonicalHostName()="+remoteInetSocketAddress.getAddress().getCanonicalHostName());
+//            System.out.println("getPort="+remoteInetSocketAddress.getPort());
+//            System.out.println("getHostName="+remoteInetSocketAddress.getHostName());
+//            System.out.println("getHostString="+remoteInetSocketAddress.getHostString());
+//            System.out.println("--------");
+//            System.out.println("客户端IP="+getRemoteIP(fullHttpRequest,ctx));
+
+            NettyHttpServletRequest servletRequest = new NettyHttpServletRequest(servletContext,
+                    fullHttpRequest,(InetSocketAddress)ctx.channel().remoteAddress());
+            ctx.fireChannelRead(servletRequest);
         } catch (Exception ex) {
             ctx.close();
         }finally {
             ctx.channel().pipeline().remove(this);
-            ReferenceCountUtil.release(msg);
+            ReferenceCountUtil.release(fullHttpRequest);
         }
     }
 

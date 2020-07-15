@@ -5,6 +5,7 @@ import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletRequest;
 import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletResponse;
 import com.centify.boot.web.embedded.netty.servlet.NettyRequestDispatcher;
 import com.centify.boot.web.embedded.netty.utils.NettyChannelUtil;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -48,20 +49,30 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<NettyH
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, NettyHttpServletRequest msg) throws Exception {
-        NettyHttpServletResponse servletResponse = new NettyHttpServletResponse();
-        NettyRequestDispatcher dispatcherServlet = (NettyRequestDispatcher) servletContext.getRequestDispatcher(msg.getRequestURI());
-        dispatcherServlet.dispatch(msg, servletResponse);
-        if (!msg.isActive()){
+        ByteBuf result = null;
+        try{
+            NettyHttpServletResponse servletResponse = new NettyHttpServletResponse();
+            NettyRequestDispatcher dispatcherServlet = (NettyRequestDispatcher) servletContext.getRequestDispatcher(msg.getRequestURI());
+            dispatcherServlet.dispatch(msg, servletResponse);
+            if (!msg.isActive()){
+                return ;
+            }
+            result = Unpooled.wrappedBuffer(servletResponse.getContentAsByteArray());
+            NettyChannelUtil.sendResultByteBuf(
+                    ctx,
+                    HttpResponseStatus.valueOf(servletResponse.getStatus()),
+                    msg,
+                    result);
+        }finally {
+            if(msg!=null){
+                ReferenceCountUtil.release(msg);
+            }
+            if (result!=null){
+                ReferenceCountUtil.release(result);
+            }
             ctx.close();
-            ReferenceCountUtil.release(msg);
-            return ;
         }
-        NettyChannelUtil.sendResultByteBuf(
-                ctx,
-                HttpResponseStatus.valueOf(servletResponse.getStatus()),
-                msg,
-                Unpooled.wrappedBuffer(servletResponse.getContentAsByteArray())
-        );
+
     }
 
     @Override

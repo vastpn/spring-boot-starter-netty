@@ -111,6 +111,7 @@ public final class NettyChannelUtil {
     }
 
     public static void sendResultByteBuf(ChannelHandlerContext chc, HttpResponseStatus status, Object request, ByteBuf content) {
+
         FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, content);
         /**设置头信息的的MIME类型*/
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, MediaType.APPLICATION_JSON_UTF8_VALUE);
@@ -118,82 +119,6 @@ public final class NettyChannelUtil {
         response.headers().set(HttpHeaderNames.CONTENT_LENGTH, content.readableBytes());
         /**返回客户端并监听关闭*/
         chc.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
-        /**释放从InBound里读取的ByteBuf*/
-        if (request != null) {
-            ReferenceCountUtil.release(request);
-        }
-    }
 
-    /**
-     * <pre>
-     * <b>根据fullHttpRequest请求信息，创建MockHttpServletRequest</b>
-     * <b>Describe:TODO</b>
-     *
-     * <b>Author: tanlin [2020/5/24 16:13]</b>
-     *
-     *
-     * @param ctx
-     * @param servletContext
-     * @param fullHttpRequest Http请求对象
-     * @return org.springframework.mock.web.MockHttpServletRequest
-     * <pre>
-     */
-    public static NettyHttpServletRequest createServletRequest(ChannelHandlerContext ctx,
-                                                               NettyServletContext servletContext,
-                                                               FullHttpRequest fullHttpRequest) {
-
-
-        NettyHttpServletRequest servletRequest = new NettyHttpServletRequest(servletContext,fullHttpRequest.method().name(),fullHttpRequest);
-
-
-        return servletRequest;
-    }
-
-    private static void setRequestParams(FullHttpRequest fullHttpRequest, NettyHttpServletRequest servletRequest, UriComponents uriComponents) {
-        /*URL 转码 */
-        if (uriComponents.getQuery() != null) {
-            servletRequest.setQueryString(UriUtils.decode(uriComponents.getQuery(), CharsetUtil.UTF_8));
-        }
-        if (HttpMethod.GET.equals(fullHttpRequest.method())) {
-            innerGetParams(servletRequest, uriComponents);
-        } else if (HttpMethod.POST.equals(fullHttpRequest.method())) {
-            innerPostParams(fullHttpRequest, servletRequest);
-        } else if (HttpMethod.DELETE.equals(fullHttpRequest.method())) {
-        }
-    }
-
-    private static void innerPostParams(FullHttpRequest fullHttpRequest, NettyHttpServletRequest servletRequest) {
-        Optional.ofNullable(fullHttpRequest.headers().get(HttpHeaderNames.CONTENT_TYPE.toString()))
-                .ifPresent(item -> {
-                    /*JSON、文件无需再次设置，在创建Request时 InputStream 已处理*/
-                    /*Form 表单参数设置*/
-                    if (item.contains(MediaType.MULTIPART_FORM_DATA_VALUE) || item.contains(MediaType.APPLICATION_FORM_URLENCODED_VALUE)) {
-                        HttpPostRequestDecoder decoder = new HttpPostRequestDecoder(new DefaultHttpDataFactory(false), fullHttpRequest);
-                        servletRequest.setParameters(decoder.getBodyHttpDatas().parallelStream()
-                                .filter((data) -> data.getHttpDataType().equals(InterfaceHttpData.HttpDataType.Attribute))
-                                .map((convData) -> (MemoryAttribute) convData)
-                                .collect(Collectors.toMap(
-                                        MemoryAttribute::getName,
-                                        MemoryAttribute::getValue,
-                                        (key1, key2) -> key2)));
-
-                    }
-                    /*JSON无需再次获取数据 ，已通过 流获取*/
-//                    else if (item.contains(MediaType.APPLICATION_JSON_VALUE)) {
-//                    }
-                });
-    }
-
-    private static void innerGetParams(NettyHttpServletRequest servletRequest, UriComponents uriComponents) {
-        Optional.ofNullable(uriComponents.getQueryParams().entrySet())
-                .ifPresent((entrys) -> {
-                    entrys.parallelStream().forEach((entry) -> {
-                        entry.getValue().parallelStream().forEach((item) -> {
-                            servletRequest.addParameter(
-                                    UriUtils.decode(entry.getKey(), CharsetUtil.UTF_8),
-                                    UriUtils.decode(item, CharsetUtil.UTF_8));
-                        });
-                    });
-                });
     }
 }

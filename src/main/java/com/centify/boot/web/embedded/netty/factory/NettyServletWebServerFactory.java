@@ -43,7 +43,12 @@ public class NettyServletWebServerFactory extends AbstractServletWebServerFactor
     /**
      * 环境配置对象
      */
-    private final Environment environment;
+    public static Environment environment;
+
+    /**
+     * 服务端IP、端口、主机名
+     * */
+    public static InetSocketAddress serverAddress;
 
     /**
      * WebServer 配置属性
@@ -51,7 +56,7 @@ public class NettyServletWebServerFactory extends AbstractServletWebServerFactor
     private final ServerProperties serverProperties;
 
     public NettyServletWebServerFactory(Environment environment, ServerProperties serverProperties) {
-        this.environment = environment;
+        NettyServletWebServerFactory.environment = environment;
         this.serverProperties = serverProperties;
     }
 
@@ -65,12 +70,10 @@ public class NettyServletWebServerFactory extends AbstractServletWebServerFactor
         onStartup(servletContext, initializers);
         /**从SpringBoot配置中获取端口，如果没有则随机生成*/
         int port = getPort() > 0 ? getPort() : 8080;
-        InetSocketAddress address = new InetSocketAddress(port);
-
-        LOGGER.info("Server initialized with port: {}", port);
-        servletContext.setAttribute("serverAddress",address);
+        serverAddress = new InetSocketAddress(port);
+        LOGGER.info("Server initialized with address: {} , port: {}", serverAddress.getAddress().getHostAddress(),serverAddress.getPort());
         /**初始化容器并返回*/
-        return new NettyServletWebServer(address,servletContext);
+        return new NettyServletWebServer(serverAddress,servletContext);
     }
     private void logContainer() {
         /**Netty启动环境相关信息*/
