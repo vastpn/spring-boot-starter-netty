@@ -48,24 +48,30 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<NettyH
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, NettyHttpServletRequest msg) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, NettyHttpServletRequest request) throws Exception {
         ByteBuf result = null;
+        NettyHttpServletResponse servletResponse = NettyHttpServletResponse.getInstance(ctx);
+        NettyRequestDispatcher dispatcherServlet = (NettyRequestDispatcher) servletContext.getRequestDispatcher(request.getRequestURI());
         try{
-            NettyHttpServletResponse servletResponse = new NettyHttpServletResponse();
-            NettyRequestDispatcher dispatcherServlet = (NettyRequestDispatcher) servletContext.getRequestDispatcher(msg.getRequestURI());
-            dispatcherServlet.dispatch(msg, servletResponse);
-            if (!msg.isActive()){
+            dispatcherServlet.dispatch(request, servletResponse);
+
+            if (!request.isActive()){
                 return ;
             }
-            result = Unpooled.wrappedBuffer(servletResponse.getContentAsByteArray());
-            NettyChannelUtil.sendResultByteBuf(
-                    ctx,
-                    HttpResponseStatus.valueOf(servletResponse.getStatus()),
-                    msg,
-                    result);
+//            result = Unpooled.wrappedBuffer(servletResponse.getContentAsByteArray());
+//            NettyChannelUtil.sendResultByteBuf(
+//                    ctx,
+//                    HttpResponseStatus.valueOf(servletResponse.getStatus()),
+//                    result);
         }finally {
-            if(msg!=null){
-                ReferenceCountUtil.release(msg);
+            if(dispatcherServlet!=null){
+                dispatcherServlet.recycle();
+            }
+            if(request!=null){
+                request.recycle();
+            }
+            if(servletResponse!=null){
+                servletResponse.recycle();
             }
             if (result!=null){
                 ReferenceCountUtil.release(result);

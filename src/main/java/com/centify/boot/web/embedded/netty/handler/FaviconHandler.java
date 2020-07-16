@@ -75,10 +75,8 @@ public class FaviconHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 //            System.out.println("getHostString="+remoteInetSocketAddress.getHostString());
 //            System.out.println("--------");
 //            System.out.println("客户端IP="+getRemoteIP(fullHttpRequest,ctx));
-
-            NettyHttpServletRequest servletRequest = new NettyHttpServletRequest(servletContext,
-                    fullHttpRequest,(InetSocketAddress)ctx.channel().remoteAddress());
-            ctx.fireChannelRead(servletRequest);
+            ctx.fireChannelRead(NettyHttpServletRequest.getInstance(servletContext,
+                    fullHttpRequest,(InetSocketAddress)ctx.channel().remoteAddress()));
         } catch (Exception ex) {
             ctx.close();
         }finally {
@@ -90,36 +88,5 @@ public class FaviconHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         ctx.close();
-    }
-    /**
-     * <pre>
-     * <b>获取远程客户端IP</b>
-     * <b>Describe:</b>
-     *
-     * <b>Author: tanlin [2020/5/24 15:28]</b>
-     *
-     * @param httpRequest http请求对象
-     * @param channelHandlerContext 数据管道上下文对象
-     * @return String 客户端IP
-     * <pre>
-     */
-    public String getRemoteIP(FullHttpRequest httpRequest, ChannelHandlerContext channelHandlerContext) {
-        Channel channel = channelHandlerContext.channel();
-        String ip = "";
-        try {
-            String ipForwarded = httpRequest.headers().get("x-forwarded-for");
-            if (StringUtils.isBlank(ipForwarded) || "unknown".equalsIgnoreCase(ipForwarded)) {
-                InetSocketAddress insocket = (InetSocketAddress) channel.remoteAddress();
-                ip = insocket.getAddress().getHostAddress();
-            } else {
-                ip = ipForwarded;
-            }
-        } catch (Exception e) {
-            LOGGER.error("getRemoteIP(): get remote ip fail!", e);
-        }
-        if ("0:0:0:0:0:0:0:1".equals(ip)) {
-            ip = "127.0.0.1";
-        }
-        return ip;
     }
 }

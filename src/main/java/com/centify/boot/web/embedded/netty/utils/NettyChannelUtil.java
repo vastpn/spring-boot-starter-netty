@@ -1,27 +1,14 @@
 package com.centify.boot.web.embedded.netty.utils;
 
 import com.alibaba.fastjson.JSONObject;
-import com.centify.boot.web.embedded.netty.context.NettyServletContext;
-import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletRequest;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.*;
-import io.netty.handler.codec.http.multipart.DefaultHttpDataFactory;
-import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
-import io.netty.handler.codec.http.multipart.InterfaceHttpData;
-import io.netty.handler.codec.http.multipart.MemoryAttribute;
 import io.netty.util.CharsetUtil;
 import io.netty.util.ReferenceCountUtil;
 import org.springframework.http.MediaType;
-import org.springframework.web.util.UriComponents;
-import org.springframework.web.util.UriComponentsBuilder;
-import org.springframework.web.util.UriUtils;
-
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * <pre>
@@ -110,7 +97,7 @@ public final class NettyChannelUtil {
         }
     }
 
-    public static void sendResultByteBuf(ChannelHandlerContext chc, HttpResponseStatus status, Object request, ByteBuf content) {
+    public static void sendResultByteBuf(ChannelHandlerContext chc, HttpResponseStatus status, ByteBuf content) {
 
         FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, content);
         /**设置头信息的的MIME类型*/

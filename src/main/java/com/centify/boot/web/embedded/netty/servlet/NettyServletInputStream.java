@@ -5,11 +5,16 @@ import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpRequest;
+import io.netty.util.Recycler;
 import io.netty.util.ReferenceCountUtil;
+import org.springframework.lang.Nullable;
 
 import javax.servlet.ReadListener;
+import javax.servlet.ServletContext;
 import javax.servlet.ServletInputStream;
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -31,12 +36,34 @@ public class NettyServletInputStream extends ServletInputStream {
     private ByteBuf source;
     private int contentLength;
 
-    public NettyServletInputStream() {
+    private final Recycler.Handle<NettyServletInputStream> handle;
+
+    private static final Recycler<NettyServletInputStream> RECYCLER = new Recycler<NettyServletInputStream>() {
+        @Override
+        protected NettyServletInputStream newObject(Handle<NettyServletInputStream> handle) {
+            return new NettyServletInputStream(handle);
+        }
+    };
+
+    private NettyServletInputStream(Recycler.Handle<NettyServletInputStream> handle){
+        this.handle=handle;
     }
 
-    public NettyServletInputStream(ByteBuf source) {
-        wrap(source);
+    public static final NettyServletInputStream getInstance(){
+        NettyServletInputStream dispatcher = RECYCLER.get();
+        return dispatcher;
     }
+
+    public void recycle(){
+        this.contentLength = 0;
+        try {
+            this.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        handle.recycle(this);
+    }
+
     public void wrap(ByteBuf source) {
         Objects.requireNonNull(source);
 
@@ -106,7 +133,7 @@ public class NettyServletInputStream extends ServletInputStream {
     public void close() throws IOException {
         if (closed.compareAndSet(false,true)) {
             if(source != null && source.refCnt() > 0){
-                ReferenceCountUtil.safeRelease(source);
+                ReferenceCountUtil.release(source);
                 source = null;
             }
         }

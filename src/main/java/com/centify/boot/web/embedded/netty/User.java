@@ -24,13 +24,6 @@ import java.io.Serializable;
 @ToString
 @Accessors(chain = true)
 public class User implements Serializable {
-    private final Recycler.Handle<User> handle;
-    public User(Recycler.Handle<User> handle){
-        this.handle=handle;
-    }
-    public void recycle(){
-        handle.recycle(this);
-    }
     private Integer id;
     private String name;
     private String itemd;

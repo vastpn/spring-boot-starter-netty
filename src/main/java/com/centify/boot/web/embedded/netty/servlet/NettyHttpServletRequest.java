@@ -12,6 +12,8 @@ import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
 import io.netty.handler.codec.http.multipart.InterfaceHttpData;
 import io.netty.handler.codec.http.multipart.MemoryAttribute;
 import io.netty.util.CharsetUtil;
+import io.netty.util.Recycler;
+import io.netty.util.ReferenceCountUtil;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
@@ -88,10 +90,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
      */
     public static final String DEFAULT_SCHEME = HTTP;
 
-    /**
-     * The default server address: '127.0.0.1'.
-     */
-    public static final String DEFAULT_SERVER_ADDR = "127.0.0.1";
 
     /**
      * The default server name: 'localhost'.
@@ -103,22 +101,11 @@ public class NettyHttpServletRequest implements HttpServletRequest {
      */
     public static final int DEFAULT_SERVER_PORT = 80;
 
-    /**
-     * The default remote address: '127.0.0.1'.
-     */
-    public static final String DEFAULT_REMOTE_ADDR = "127.0.0.1";
-
-    /**
-     * The default remote host: 'localhost'.
-     */
-    public static final String DEFAULT_REMOTE_HOST = "localhost";
-
-
     // ---------------------------------------------------------------------
     // Lifecycle properties
     // ---------------------------------------------------------------------
 
-    private final ServletContext servletContext;
+    private ServletContext servletContext;
     private UriComponents uriComponents;
     private boolean active = true;
 
@@ -137,7 +124,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     private InetSocketAddress remoteInetSocketAddress;
 
     @Nullable
-    private NettyServletInputStream inputStream = new NettyServletInputStream();
+    private NettyServletInputStream inputStream = NettyServletInputStream.getInstance();
 
     @Nullable
     private BufferedReader reader;
@@ -196,7 +183,52 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     private final MultiValueMap<String, Part> parts = new LinkedMultiValueMap<>();
 
-    public NettyHttpServletRequest(@Nullable ServletContext servletContext, FullHttpRequest fullHttpRequest, InetSocketAddress remoteInetSocketAddress) {
+    private final Recycler.Handle<NettyHttpServletRequest> handle;
+
+    private static final Recycler<NettyHttpServletRequest> RECYCLER = new Recycler<NettyHttpServletRequest>() {
+        @Override
+        protected NettyHttpServletRequest newObject(Handle<NettyHttpServletRequest> handle) {
+            return new NettyHttpServletRequest(handle);
+        }
+    };
+
+    private NettyHttpServletRequest(Recycler.Handle<NettyHttpServletRequest> handle){
+        this.handle=handle;
+    }
+
+    public static final NettyHttpServletRequest getInstance(@Nullable ServletContext servletContext, FullHttpRequest fullHttpRequest, InetSocketAddress remoteInetSocketAddress){
+        NettyHttpServletRequest httpServletRequest = RECYCLER.get();
+        httpServletRequest.setRequestInfo( servletContext, fullHttpRequest, remoteInetSocketAddress);
+        return httpServletRequest;
+    }
+
+    public void recycle(){
+        this.servletContext = null;
+        ReferenceCountUtil.release(this.fullHttpRequest);
+        this.remoteInetSocketAddress = null;
+        this.uriComponents = null;
+        this.requestURI = null;
+        this.locales.add(Locale.ENGLISH);
+        this.inputStream.recycle();
+        this.pathInfo = null;
+        this.queryString = null;
+        this.parameters.clear();
+        this.attributes.clear();
+        this.parts.clear();
+        this.reader = null;
+        this.secure =false;
+        this.asyncStarted = false;
+        this.asyncSupported = false;
+        this.pathInfo=null;
+        this.session=null;
+        this.requestedSessionIdValid = true;
+        this.requestedSessionIdFromCookie = true;
+        this.requestedSessionIdFromURL = false;
+        handle.recycle(this);
+    }
+
+
+    private void setRequestInfo(@Nullable ServletContext servletContext, FullHttpRequest fullHttpRequest, InetSocketAddress remoteInetSocketAddress) {
         this.servletContext = servletContext;
         this.fullHttpRequest = fullHttpRequest;
         this.remoteInetSocketAddress = remoteInetSocketAddress;
@@ -881,34 +913,13 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     @Override
     public Enumeration<String> getHeaders(String name) {
-        Collection collection = this.fullHttpRequest.headers().getAll((CharSequence)name);
-        return new Enumeration<String>() {
-            private Iterator iterator = collection.iterator();
-            @Override
-            public boolean hasMoreElements() {
-                return iterator.hasNext();
-            }
-            @Override
-            public String nextElement() {
-                return iterator.next().toString();
-            }
-        };
+        return Collections.enumeration(this.fullHttpRequest.headers().getAll((CharSequence)name));
+
     }
 
     @Override
     public Enumeration<String> getHeaderNames() {
-        Set nameSet = this.fullHttpRequest.headers().names();
-        return new Enumeration<String>() {
-            private Iterator iterator = nameSet.iterator();
-            @Override
-            public boolean hasMoreElements() {
-                return iterator.hasNext();
-            }
-            @Override
-            public String nextElement() {
-                return iterator.next().toString();
-            }
-        };
+        return Collections.enumeration(this.fullHttpRequest.headers().names());
     }
 
     @Override

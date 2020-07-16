@@ -308,9 +308,9 @@ public class NettyServletContext implements ServletContext {
                 return null;
             }
             // FIXME proper path matching
-            FilterChain filterChain = new NettyFilterChain(servlet, this.filters.entrySet().stream()
+            FilterChain filterChain = NettyFilterChain.getInstance(servlet, this.filters.entrySet().stream()
                     .map(entry->entry.getValue().getFilter()).collect(Collectors.toList()));
-            return new NettyRequestDispatcher(this, filterChain);
+            return NettyRequestDispatcher.getInstance(this, filterChain);
         } catch (ServletException e) {
             // TODO log exception
             return null;

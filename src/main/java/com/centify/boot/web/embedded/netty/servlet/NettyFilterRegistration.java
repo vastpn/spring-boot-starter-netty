@@ -67,9 +67,8 @@ public class NettyFilterRegistration extends AbstractNettyRegistration implement
 
     @Override
     public void addMappingForUrlPatterns(EnumSet<DispatcherType> dispatcherTypes, boolean isMatchAfter, String... urlPatterns) {
-        NettyServletContext context = getNettyContext();
         for (String urlPattern : urlPatterns) {
-            context.addFilterMapping(dispatcherTypes, isMatchAfter, urlPattern);
+            getNettyContext().addFilterMapping(dispatcherTypes, isMatchAfter, urlPattern);
         }
     }
 
