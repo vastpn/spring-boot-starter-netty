@@ -1,6 +1,5 @@
 package com.centify.boot.web.embedded.netty.core;
 
-import com.centify.boot.web.embedded.netty.context.NettyServletContext;
 import com.centify.boot.web.embedded.netty.handler.DispatcherServletHandler;
 import com.centify.boot.web.embedded.netty.handler.FaviconHandler;
 import io.netty.channel.ChannelInitializer;
@@ -25,7 +24,6 @@ import io.netty.handler.timeout.WriteTimeoutHandler;
  * <pre>
  */
 public class NettyServletChannelInitializer extends ChannelInitializer<SocketChannel> {
-    private final NettyServletContext servletContext;
     private final FaviconHandler faviconHandler;
     private final DispatcherServletHandler dispatcherServletHandler;
     /**
@@ -33,12 +31,9 @@ public class NettyServletChannelInitializer extends ChannelInitializer<SocketCha
      */
     private static final Integer REQUEST_DATA_MAXCONTENTLENGTH = 256 * 1024;
 
-    public NettyServletChannelInitializer(NettyServletContext servletContext) {
-        this.servletContext = servletContext;
+    public NettyServletChannelInitializer() {
         this.faviconHandler = FaviconHandler.getInstance();
-        this.faviconHandler.setServletContext(servletContext);
         this.dispatcherServletHandler = DispatcherServletHandler.getInstance();
-        this.dispatcherServletHandler.setServletContext(servletContext);
     }
 
     @Override

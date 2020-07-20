@@ -1,26 +1,21 @@
 package com.centify.boot.web.embedded.netty.servlet;
 
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.util.Recycler;
-import org.springframework.http.HttpHeaders;
+import io.netty.handler.codec.http.CombinedHttpHeaders;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.lang.Nullable;
-import org.springframework.mock.web.MockCookie;
-import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
+import org.springframework.mock.web.DelegatingServletOutputStream;
 import org.springframework.web.util.WebUtils;
 
 import javax.servlet.ServletOutputStream;
-import javax.servlet.WriteListener;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
 
 /**
  * <pre>
@@ -39,30 +34,21 @@ public class NettyHttpServletResponse implements HttpServletResponse {
 
     private static final String CHARSET_PREFIX = "charset=";
 
-    private static final String DATE_FORMAT = "EEE, dd MMM yyyy HH:mm:ss zzz";
-
-    private static final TimeZone GMT = TimeZone.getTimeZone("GMT");
-
-
-    //---------------------------------------------------------------------
-    // ServletResponse properties
-    //---------------------------------------------------------------------
-
-    private boolean outputStreamAccessAllowed = true;
-
-    private boolean writerAccessAllowed = true;
-
+    @Nullable
     private String characterEncoding = WebUtils.DEFAULT_CHARACTER_ENCODING;
 
     private boolean charset = false;
 
+    private final ByteArrayOutputStream content = new ByteArrayOutputStream(1024);
 
-    private ServletOutputStream outputStream ;
+    private final ServletOutputStream outputStream = new NettyHttpServletResponse.ResponseServletOutputStream(this.content);
 
+    private final HttpHeaders headers = new CombinedHttpHeaders(false);
+
+    @Nullable
     private PrintWriter writer;
 
-    private long contentLength = 0;
-
+    @Nullable
     private String contentType;
 
     private int bufferSize = 4096;
@@ -71,92 +57,10 @@ public class NettyHttpServletResponse implements HttpServletResponse {
 
     private Locale locale = Locale.getDefault();
 
-
-    //---------------------------------------------------------------------
-    // HttpServletResponse properties
-    //---------------------------------------------------------------------
-
     private int status = HttpServletResponse.SC_OK;
 
-    private String errorMessage;
-
-    private String forwardedUrl;
-
-    private final List<String> includedUrls = new ArrayList<>();
-
-    private final Recycler.Handle<NettyHttpServletResponse> handle;
-
-    private static final Recycler<NettyHttpServletResponse> RECYCLER = new Recycler<NettyHttpServletResponse>() {
-        @Override
-        protected NettyHttpServletResponse newObject(Handle<NettyHttpServletResponse> handle) {
-            return new NettyHttpServletResponse(handle);
-        }
-    };
-
-    private NettyHttpServletResponse(Recycler.Handle<NettyHttpServletResponse> handle){
-        this.handle=handle;
-    }
-
-    public static final NettyHttpServletResponse getInstance(ChannelHandlerContext ctx){
-        NettyHttpServletResponse servletResponse = RECYCLER.get();
-        servletResponse.outputStream = ResponseServletOutputStream.getInstance(ctx,servletResponse);
-        return servletResponse;
-    }
-
-    public void recycle(){
-        this.outputStreamAccessAllowed = true;
-        this.writerAccessAllowed = true;
-        ((ResponseServletOutputStream)this.outputStream).recycle();
-        this.charset = false;
-        this.writer = null;
-        this.bufferSize = 4096;
-        this.committed = false;
-        this.forwardedUrl = null;
-        this.includedUrls.clear();
-        this.reset();
-        handle.recycle(this);
-    }
-
-    //---------------------------------------------------------------------
-    // ServletResponse interface
-    //---------------------------------------------------------------------
-
-    /**
-     * Set whether {@link #getOutputStream()} access is allowed.
-     * <p>Default is {@code true}.
-     */
-    public void setOutputStreamAccessAllowed(boolean outputStreamAccessAllowed) {
-        this.outputStreamAccessAllowed = outputStreamAccessAllowed;
-    }
-
-    /**
-     * Return whether {@link #getOutputStream()} access is allowed.
-     */
-    public boolean isOutputStreamAccessAllowed() {
-        return this.outputStreamAccessAllowed;
-    }
-
-    /**
-     * Set whether {@link #getWriter()} access is allowed.
-     * <p>Default is {@code true}.
-     */
-    public void setWriterAccessAllowed(boolean writerAccessAllowed) {
-        this.writerAccessAllowed = writerAccessAllowed;
-    }
-
-    /**
-     * Return whether {@link #getOutputStream()} access is allowed.
-     */
-    public boolean isWriterAccessAllowed() {
-        return this.writerAccessAllowed;
-    }
-
-    /**
-     * Return whether the character encoding has been set.
-     * <p>If {@code false}, {@link #getCharacterEncoding()} will return a default encoding value.
-     */
-    public boolean isCharset() {
-        return this.charset;
+    public HttpHeaders getHeaders() {
+        return headers;
     }
 
     @Override
@@ -172,6 +76,7 @@ public class NettyHttpServletResponse implements HttpServletResponse {
             if (!this.contentType.toLowerCase().contains(CHARSET_PREFIX) && this.charset) {
                 sb.append(";").append(CHARSET_PREFIX).append(this.characterEncoding);
             }
+            doAddHeaderValue(HttpHeaderNames.CONTENT_TYPE.toString(), sb.toString(), true);
         }
     }
 
@@ -183,43 +88,31 @@ public class NettyHttpServletResponse implements HttpServletResponse {
 
     @Override
     public ServletOutputStream getOutputStream() {
-        Assert.state(this.outputStreamAccessAllowed, "OutputStream access not allowed");
         return this.outputStream;
     }
 
     @Override
     public PrintWriter getWriter() throws UnsupportedEncodingException {
-//        Assert.state(this.writerAccessAllowed, "Writer access not allowed");
-//        if (this.writer == null) {
-//            Writer targetWriter = (this.characterEncoding != null ?
-//                    new OutputStreamWriter(this.content, this.characterEncoding) : new OutputStreamWriter(this.content));
-//            this.writer = new ResponsePrintWriter(targetWriter);
-//        }
-//        return this.writer;
-        return null;
+        if (this.writer == null) {
+            Writer targetWriter = (this.characterEncoding != null ?
+                    new OutputStreamWriter(this.content, this.characterEncoding) : new OutputStreamWriter(this.content));
+            this.writer = new NettyHttpServletResponse.ResponsePrintWriter(targetWriter);
+        }
+        return this.writer;
     }
 
-//    public byte[] getContentAsByteArray() {
-//        return this.content.toByteArray();
-//    }
+    public byte[] getContentAsByteArray() {
+        return this.content.toByteArray();
+    }
 
-//    public String getContentAsString() throws UnsupportedEncodingException {
-//        return (this.characterEncoding != null ?
-//                this.content.toString(this.characterEncoding) : this.content.toString());
-//    }
 
     @Override
     public void setContentLength(int contentLength) {
-        this.contentLength = contentLength;
+        doAddHeaderValue(HttpHeaderNames.CONTENT_LENGTH.toString(), contentLength, true);
     }
-
-    public int getContentLength() {
-        return (int) this.contentLength;
-    }
-
     @Override
     public void setContentLengthLong(long contentLength) {
-        this.contentLength = contentLength;
+        doAddHeaderValue(HttpHeaderNames.CONTENT_LENGTH.toString(), contentLength, true);
     }
 
     @Override
@@ -268,16 +161,15 @@ public class NettyHttpServletResponse implements HttpServletResponse {
 
     @Override
     public void resetBuffer() {
-//        Assert.state(!isCommitted(), "Cannot reset buffer - response is already committed");
-//        this.content.reset();
+        this.content.reset();
     }
 
-//    private void setCommittedIfBufferSizeExceeded() {
-//        int bufSize = getBufferSize();
-//        if (bufSize > 0 && this.content.size() > bufSize) {
-//            setCommitted(true);
-//        }
-//    }
+    private void setCommittedIfBufferSizeExceeded() {
+        int bufSize = getBufferSize();
+        if (bufSize > 0 && this.content.size() > bufSize) {
+            setCommitted(true);
+        }
+    }
 
     public void setCommitted(boolean committed) {
         this.committed = committed;
@@ -292,16 +184,16 @@ public class NettyHttpServletResponse implements HttpServletResponse {
     public void reset() {
         resetBuffer();
         this.characterEncoding = null;
-        this.contentLength = 0;
         this.contentType = null;
         this.locale = Locale.getDefault();
+        this.headers.clear();
         this.status = HttpServletResponse.SC_OK;
-        this.errorMessage = null;
     }
 
     @Override
     public void setLocale(Locale locale) {
         this.locale = locale;
+        doAddHeaderValue(HttpHeaderNames.CONTENT_LANGUAGE.toString(), locale.toLanguageTag(), true);
     }
 
     @Override
@@ -316,52 +208,12 @@ public class NettyHttpServletResponse implements HttpServletResponse {
 
     @Override
     public void addCookie(Cookie cookie) {
-        //TODO 暂未实现
-    }
-
-    private String getCookieHeader(Cookie cookie) {
-        StringBuilder buf = new StringBuilder();
-        buf.append(cookie.getName()).append('=').append(cookie.getValue() == null ? "" : cookie.getValue());
-        if (StringUtils.hasText(cookie.getPath())) {
-            buf.append("; Path=").append(cookie.getPath());
-        }
-        if (StringUtils.hasText(cookie.getDomain())) {
-            buf.append("; Domain=").append(cookie.getDomain());
-        }
-        int maxAge = cookie.getMaxAge();
-        if (maxAge >= 0) {
-            buf.append("; Max-Age=").append(maxAge);
-            buf.append("; Expires=");
-            ZonedDateTime expires = (cookie instanceof MockCookie ? ((MockCookie) cookie).getExpires() : null);
-            if (expires != null) {
-                buf.append(expires.format(DateTimeFormatter.RFC_1123_DATE_TIME));
-            }
-            else {
-                HttpHeaders headers = new HttpHeaders();
-                headers.setExpires(maxAge > 0 ? System.currentTimeMillis() + 1000L * maxAge : 0);
-                buf.append(headers.getFirst(HttpHeaders.EXPIRES));
-            }
-        }
-
-        if (cookie.getSecure()) {
-            buf.append("; Secure");
-        }
-        if (cookie.isHttpOnly()) {
-            buf.append("; HttpOnly");
-        }
-        if (cookie instanceof MockCookie) {
-            MockCookie mockCookie = (MockCookie) cookie;
-            if (StringUtils.hasText(mockCookie.getSameSite())) {
-                buf.append("; SameSite=").append(mockCookie.getSameSite());
-            }
-        }
-        return buf.toString();
+        this.headers.add(HttpHeaderNames.SET_COOKIE.toString(),cookie.getValue());
     }
 
     @Override
     public boolean containsHeader(String name) {
-        //TODO 暂未实现
-        return false;
+        return (this.headers.get(name) != null);
     }
 
     /**
@@ -371,8 +223,7 @@ public class NettyHttpServletResponse implements HttpServletResponse {
      */
     @Override
     public Collection<String> getHeaderNames() {
-        //TODO 暂未实现
-        return null;
+        return this.headers.names();
     }
 
     /**
@@ -380,41 +231,27 @@ public class NettyHttpServletResponse implements HttpServletResponse {
      * Will return the first value in case of multiple values.
      * <p>As of Servlet 3.0, this method is also defined in HttpServletResponse.
      * As of Spring 3.1, it returns a stringified value for Servlet 3.0 compatibility.
-     * Consider using {@link #getHeaderValue(String)} for raw Object access.
+     * Consider using  for raw Object access.
      * @param name the name of the header
      * @return the associated header value, or {@code null} if none
      */
     @Override
     @Nullable
     public String getHeader(String name) {
-        //TODO 暂未实现
-        return null;
+        return this.headers.get(name);
     }
 
     /**
      * Return all values for the given header as a List of Strings.
      * <p>As of Servlet 3.0, this method is also defined in HttpServletResponse.
      * As of Spring 3.1, it returns a List of stringified values for Servlet 3.0 compatibility.
-     * Consider using for raw Object access.
+     * Consider using  for raw Object access.
      * @param name the name of the header
      * @return the associated header values, or an empty List if none
      */
     @Override
     public List<String> getHeaders(String name) {
-        //TODO 暂未实现
-        return null;
-    }
-
-    /**
-     * Return the primary value for the given header, if any.
-     * <p>Will return the first value in case of multiple values.
-     * @param name the name of the header
-     * @return the associated header value, or {@code null} if none
-     */
-    @Nullable
-    public Object getHeaderValue(String name) {
-        //TODO 暂未实现
-        return null;
+        return this.headers.getAll(name);
     }
 
 
@@ -454,87 +291,60 @@ public class NettyHttpServletResponse implements HttpServletResponse {
 
     @Override
     public void sendError(int status, String errorMessage) throws IOException {
-        Assert.state(!isCommitted(), "Cannot set error status - response is already committed");
         this.status = status;
-        this.errorMessage = errorMessage;
+        this.headers.set("errorMessage",errorMessage);
         setCommitted(true);
     }
 
     @Override
     public void sendError(int status) throws IOException {
-        Assert.state(!isCommitted(), "Cannot set error status - response is already committed");
         this.status = status;
         setCommitted(true);
     }
 
     @Override
     public void sendRedirect(String url) throws IOException {
-        Assert.state(!isCommitted(), "Cannot send redirect - response is already committed");
-        Assert.notNull(url, "Redirect URL must not be null");
-        setHeader(HttpHeaders.LOCATION, url);
+        setHeader(HttpHeaderNames.LOCATION.toString(), url);
         setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
         setCommitted(true);
     }
-
-    @Nullable
-    public String getRedirectedUrl() {
-        return getHeader(HttpHeaders.LOCATION);
-    }
-
     @Override
     public void setDateHeader(String name, long value) {
-        //TODO 暂未实现
+        this.headers.set(name,value);
     }
 
     @Override
     public void addDateHeader(String name, long value) {
-        //TODO 暂未实现
-    }
-
-    public long getDateHeader(String name) {
-        String headerValue = getHeader(name);
-        if (headerValue == null) {
-            return -1;
-        }
-        try {
-            return newDateFormat().parse(getHeader(name)).getTime();
-        }
-        catch (ParseException ex) {
-            throw new IllegalArgumentException(
-                    "Value for header '" + name + "' is not a valid Date: " + headerValue);
-        }
-    }
-
-    private String formatDate(long date) {
-        return newDateFormat().format(new Date(date));
-    }
-
-    private DateFormat newDateFormat() {
-        SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT, Locale.US);
-        dateFormat.setTimeZone(GMT);
-        return dateFormat;
+        this.headers.add(name,value);
     }
 
     @Override
     public void setHeader(String name, String value) {
-        //TODO 暂未实现
+        this.headers.set(name,value);
     }
 
     @Override
     public void addHeader(String name, String value) {
-        //TODO 暂未实现
+        this.headers.add(name,value);
     }
 
     @Override
     public void setIntHeader(String name, int value) {
-        //TODO 暂未实现
+        this.headers.setInt(name,value);
     }
 
     @Override
     public void addIntHeader(String name, int value) {
-        //TODO 暂未实现
+        this.headers.addInt(name,value);
     }
 
+    private void doAddHeaderValue(String name, Object value, boolean replace) {
+        if (replace) {
+            headers.set(name,value);
+        }else {
+            headers.add(name,value);
+        }
+    }
 
     @Override
     public void setStatus(int status) {
@@ -548,7 +358,7 @@ public class NettyHttpServletResponse implements HttpServletResponse {
     public void setStatus(int status, String errorMessage) {
         if (!this.isCommitted()) {
             this.status = status;
-            this.errorMessage = errorMessage;
+            this.headers.set("errorMessage",errorMessage);
         }
     }
 
@@ -557,54 +367,29 @@ public class NettyHttpServletResponse implements HttpServletResponse {
         return this.status;
     }
 
-    @Nullable
-    public String getErrorMessage() {
-        return this.errorMessage;
-    }
-
-
-    //---------------------------------------------------------------------
-    // Methods for MockRequestDispatcher
-    //---------------------------------------------------------------------
-
-    public void setForwardedUrl(@Nullable String forwardedUrl) {
-        this.forwardedUrl = forwardedUrl;
-    }
-
-    @Nullable
-    public String getForwardedUrl() {
-        return this.forwardedUrl;
-    }
-
-    public void setIncludedUrl(@Nullable String includedUrl) {
-        this.includedUrls.clear();
-        if (includedUrl != null) {
-            this.includedUrls.add(includedUrl);
-        }
-    }
-
-    @Nullable
-    public String getIncludedUrl() {
-        int count = this.includedUrls.size();
-        Assert.state(count <= 1,
-                () -> "More than 1 URL included - check getIncludedUrls instead: " + this.includedUrls);
-        return (count == 1 ? this.includedUrls.get(0) : null);
-    }
-
-    public void addIncludedUrl(String includedUrl) {
-        Assert.notNull(includedUrl, "Included URL must not be null");
-        this.includedUrls.add(includedUrl);
-    }
-
-    public List<String> getIncludedUrls() {
-        return this.includedUrls;
-    }
-
-
     /**
      * Inner class that adapts the ServletOutputStream to mark the
      * response as committed once the buffer size is exceeded.
      */
+    private class ResponseServletOutputStream extends DelegatingServletOutputStream {
+
+        public ResponseServletOutputStream(OutputStream out) {
+            super(out);
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            super.write(b);
+            super.flush();
+            setCommittedIfBufferSizeExceeded();
+        }
+
+        @Override
+        public void flush() throws IOException {
+            super.flush();
+            setCommitted(true);
+        }
+    }
 
 
     /**
@@ -621,30 +406,26 @@ public class NettyHttpServletResponse implements HttpServletResponse {
         public void write(char[] buf, int off, int len) {
             super.write(buf, off, len);
             super.flush();
-            System.out.println("原生 PrintWriter write(char[] buf, int off, int len)");
-//            setCommittedIfBufferSizeExceeded();
+            setCommittedIfBufferSizeExceeded();
         }
 
         @Override
         public void write(String s, int off, int len) {
             super.write(s, off, len);
             super.flush();
-            System.out.println("原生 PrintWriter write(String s, int off, int len)");
-//            setCommittedIfBufferSizeExceeded();
+            setCommittedIfBufferSizeExceeded();
         }
 
         @Override
         public void write(int c) {
             super.write(c);
             super.flush();
-            System.out.println("原生 PrintWriter write(int c)");
-//            setCommittedIfBufferSizeExceeded();
+            setCommittedIfBufferSizeExceeded();
         }
 
         @Override
         public void flush() {
             super.flush();
-            System.out.println("原生 PrintWriter flush");
             setCommitted(true);
         }
 
@@ -652,7 +433,6 @@ public class NettyHttpServletResponse implements HttpServletResponse {
         public void close() {
             super.flush();
             super.close();
-            System.out.println("原生 PrintWriter close");
             setCommitted(true);
         }
     }

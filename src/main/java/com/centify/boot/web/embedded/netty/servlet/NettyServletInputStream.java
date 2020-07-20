@@ -5,16 +5,11 @@ import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpRequest;
-import io.netty.util.Recycler;
 import io.netty.util.ReferenceCountUtil;
-import org.springframework.lang.Nullable;
 
 import javax.servlet.ReadListener;
-import javax.servlet.ServletContext;
 import javax.servlet.ServletInputStream;
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -36,37 +31,14 @@ public class NettyServletInputStream extends ServletInputStream {
     private ByteBuf source;
     private int contentLength;
 
-    private final Recycler.Handle<NettyServletInputStream> handle;
-
-    private static final Recycler<NettyServletInputStream> RECYCLER = new Recycler<NettyServletInputStream>() {
-        @Override
-        protected NettyServletInputStream newObject(Handle<NettyServletInputStream> handle) {
-            return new NettyServletInputStream(handle);
-        }
-    };
-
-    private NettyServletInputStream(Recycler.Handle<NettyServletInputStream> handle){
-        this.handle=handle;
+    public NettyServletInputStream() {
     }
 
-    public static final NettyServletInputStream getInstance(){
-        NettyServletInputStream dispatcher = RECYCLER.get();
-        return dispatcher;
+    public NettyServletInputStream(ByteBuf source) {
+        wrap(source);
     }
-
-    public void recycle(){
-        this.contentLength = 0;
-        try {
-            this.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        handle.recycle(this);
-    }
-
     public void wrap(ByteBuf source) {
-        Objects.requireNonNull(source);
-
+        ReferenceCountUtil.release(this.source);
         this.closed.set(false);
         this.source = source;
         this.contentLength = source.capacity();
@@ -106,7 +78,7 @@ public class NettyServletInputStream extends ServletInputStream {
 
     @Override
     public void setReadListener(ReadListener readListener) {
-        // TODO: 10月16日/0016 监听写入事件
+        // TODO: 监听写入事件
     }
 
     /**
@@ -131,12 +103,8 @@ public class NettyServletInputStream extends ServletInputStream {
 
     @Override
     public void close() throws IOException {
-        if (closed.compareAndSet(false,true)) {
-            if(source != null && source.refCnt() > 0){
-                ReferenceCountUtil.release(source);
-                source = null;
-            }
-        }
+        ReferenceCountUtil.release(source);
+        source = null;
     }
 
     /**
@@ -160,7 +128,9 @@ public class NettyServletInputStream extends ServletInputStream {
         //复制到bytes数组
         byteBuf.readBytes(bytes, off, readableBytes);
         //返回实际读取的字节数
-        return readableBytes - byteBuf.readableBytes();
+        int size  = readableBytes - byteBuf.readableBytes();
+        ReferenceCountUtil.release(byteBuf);
+        return size;
     }
 
     /**

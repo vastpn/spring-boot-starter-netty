@@ -308,9 +308,9 @@ public class NettyServletContext implements ServletContext {
                 return null;
             }
             // FIXME proper path matching
-            FilterChain filterChain = NettyFilterChain.getInstance(servlet, this.filters.entrySet().stream()
+            FilterChain filterChain = new NettyFilterChain(servlet, this.filters.entrySet().stream()
                     .map(entry->entry.getValue().getFilter()).collect(Collectors.toList()));
-            return NettyRequestDispatcher.getInstance(this, filterChain);
+            return new NettyRequestDispatcher(this, filterChain);
         } catch (ServletException e) {
             // TODO log exception
             return null;
@@ -466,7 +466,7 @@ public class NettyServletContext implements ServletContext {
 
     @Override
     public Enumeration<String> getAttributeNames() {
-        return Collections.enumeration(new LinkedHashSet<>(this.attributes.keySet()));
+        return Collections.enumeration(this.attributes.keySet());
     }
 
     @Override

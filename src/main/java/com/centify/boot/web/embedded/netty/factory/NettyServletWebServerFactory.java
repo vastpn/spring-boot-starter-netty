@@ -50,6 +50,8 @@ public class NettyServletWebServerFactory extends AbstractServletWebServerFactor
      * */
     public static InetSocketAddress serverAddress;
 
+    public static NettyServletContext servletContext;
+
     /**
      * WebServer 配置属性
      */
@@ -64,16 +66,14 @@ public class NettyServletWebServerFactory extends AbstractServletWebServerFactor
     public WebServer getWebServer(ServletContextInitializer... initializers) {
         /**容器信息日志*/
         logContainer();
-        /**Servlet 上下文 设置*/
-        NettyServletContext servletContext = new NettyServletContext(getContextPath(),resourceLoader);
-        /**容器初始化工厂 上下文设置*/
-        onStartup(servletContext, initializers);
+        /** Servlet 容器初始化工厂 上下文设置*/
+        onStartup(initializers);
         /**从SpringBoot配置中获取端口，如果没有则随机生成*/
         int port = getPort() > 0 ? getPort() : 8080;
         serverAddress = new InetSocketAddress(port);
         LOGGER.info("Server initialized with address: {} , port: {}", serverAddress.getAddress().getHostAddress(),serverAddress.getPort());
         /**初始化容器并返回*/
-        return new NettyServletWebServer(serverAddress,servletContext);
+        return new NettyServletWebServer(serverAddress);
     }
     private void logContainer() {
         /**Netty启动环境相关信息*/
@@ -86,10 +86,11 @@ public class NettyServletWebServerFactory extends AbstractServletWebServerFactor
             LOGGER.warn("This container does not support a default servlet");
         }
     }
-    private void onStartup(ServletContext context, ServletContextInitializer[] initializers) {
+    private void onStartup(ServletContextInitializer[] initializers) {
+        servletContext = new NettyServletContext(getContextPath(),resourceLoader);
         for (ServletContextInitializer initializer : initializers) {
             try {
-                initializer.onStartup(context);
+                initializer.onStartup(servletContext);
             } catch (ServletException e) {
                 throw new RuntimeException(e);
             }

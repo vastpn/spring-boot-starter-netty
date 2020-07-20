@@ -11,6 +11,8 @@ import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioChannelOption;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,8 +37,6 @@ import java.util.concurrent.ForkJoinPool;
  */
 public class NettyServletWebServer implements WebServer {
     private static final Logger LOGGER = LoggerFactory.getLogger(NettyServletWebServer.class);
-    /**ServletContext 全局上下文*/
-    private final NettyServletContext servletContext;
 
     /**监听端口地址*/
     private final InetSocketAddress address;
@@ -49,9 +49,8 @@ public class NettyServletWebServer implements WebServer {
 
     private Boolean epollFlag;
 
-    public NettyServletWebServer(InetSocketAddress address, NettyServletContext servletContext) {
+    public NettyServletWebServer(InetSocketAddress address) {
         this.address = address;
-        this.servletContext = servletContext;
     }
 
     @Override
@@ -88,7 +87,8 @@ public class NettyServletWebServer implements WebServer {
                     .childOption(NioChannelOption.SO_SNDBUF, 16*1024)
                     /*设置ByteBuf重用缓冲区*/
                     .childOption(NioChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
-                    .childHandler(new NettyServletChannelInitializer(servletContext));
+                    .handler(new LoggingHandler(LogLevel.DEBUG))
+                    .childHandler(new NettyServletChannelInitializer());
 
             /**绑定端口，并打印端口信息*/
             ChannelFuture channelFuture = bootstrap.bind(address).syncUninterruptibly().addListener(future -> {

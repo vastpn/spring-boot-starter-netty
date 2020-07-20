@@ -1,17 +1,18 @@
 package com.centify.boot.web.embedded.netty.handler;
 
-import com.centify.boot.web.embedded.netty.context.NettyServletContext;
+import com.centify.boot.web.embedded.netty.factory.NettyServletWebServerFactory;
 import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletRequest;
 import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletResponse;
 import com.centify.boot.web.embedded.netty.servlet.NettyRequestDispatcher;
-import com.centify.boot.web.embedded.netty.utils.NettyChannelUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.*;
 import io.netty.util.ReferenceCountUtil;
+import org.springframework.http.MediaType;
 
 /**
  * <pre>
@@ -28,8 +29,6 @@ import io.netty.util.ReferenceCountUtil;
  */
 @ChannelHandler.Sharable
 public class DispatcherServletHandler extends SimpleChannelInboundHandler<NettyHttpServletRequest> {
-    private NettyServletContext servletContext;
-
 
     private static class SingletonHolder {
 
@@ -39,39 +38,44 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<NettyH
         return DispatcherServletHandler.SingletonHolder.handler;
     }
 
-    public void setServletContext(NettyServletContext servletContext) {
-        this.servletContext = servletContext;
-    }
-
-    public NettyServletContext getServletContext() {
-        return servletContext;
-    }
-
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, NettyHttpServletRequest request) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, NettyHttpServletRequest servletRequest) throws Exception {
         ByteBuf result = null;
-        NettyHttpServletResponse servletResponse = NettyHttpServletResponse.getInstance(ctx);
-        NettyRequestDispatcher dispatcherServlet = (NettyRequestDispatcher) servletContext.getRequestDispatcher(request.getRequestURI());
         try{
-            dispatcherServlet.dispatch(request, servletResponse);
+            /*Servlet Request、Response*/
+            NettyHttpServletResponse servletResponse = new NettyHttpServletResponse();
+            NettyRequestDispatcher dispatcherServlet =
+                    (NettyRequestDispatcher) NettyServletWebServerFactory.servletContext
+                            .getRequestDispatcher(servletRequest.getRequestURI());
 
-            if (!request.isActive()){
+            /*Do Servlet service(Request,Response)*/
+            dispatcherServlet.dispatch(servletRequest, servletResponse);
+            if (!servletRequest.isActive()){
                 return ;
             }
-//            result = Unpooled.wrappedBuffer(servletResponse.getContentAsByteArray());
-//            NettyChannelUtil.sendResultByteBuf(
-//                    ctx,
-//                    HttpResponseStatus.valueOf(servletResponse.getStatus()),
-//                    result);
+
+            /*Get Servlet Response , ByteBuf zero Copy*/
+            result = Unpooled.wrappedBuffer(servletResponse.getContentAsByteArray());
+
+            /*Create Default HttpResponse*/
+            FullHttpResponse fullHttpResponse = new DefaultFullHttpResponse(
+                    HttpVersion.HTTP_1_1,
+                    HttpResponseStatus.valueOf(servletResponse.getStatus()),
+                    result);
+
+            fullHttpResponse.headers().setAll(servletResponse.getHeaders());
+            /**设置要返回的内容长度*/
+            fullHttpResponse.headers().set(HttpHeaderNames.CONTENT_LENGTH, result.readableBytes());
+
+            if(fullHttpResponse.headers().get(HttpHeaderNames.CONTENT_TYPE) ==null){
+                /**设置默认头信息的的MIME类型*/
+                fullHttpResponse.headers().set(HttpHeaderNames.CONTENT_TYPE, MediaType.APPLICATION_JSON_UTF8_VALUE);
+            }
+            /**返回客户端并监听关闭*/
+            ctx.writeAndFlush(fullHttpResponse).addListener(ChannelFutureListener.CLOSE);
         }finally {
-            if(dispatcherServlet!=null){
-                dispatcherServlet.recycle();
-            }
-            if(request!=null){
-                request.recycle();
-            }
-            if(servletResponse!=null){
-                servletResponse.recycle();
+            if(servletRequest!=null){
+                ReferenceCountUtil.release(servletRequest);
             }
             if (result!=null){
                 ReferenceCountUtil.release(result);

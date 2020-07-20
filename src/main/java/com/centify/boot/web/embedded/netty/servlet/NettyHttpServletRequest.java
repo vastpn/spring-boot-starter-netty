@@ -1,6 +1,5 @@
 package com.centify.boot.web.embedded.netty.servlet;
 
-import com.centify.boot.web.embedded.netty.context.NettyServletContext;
 import com.centify.boot.web.embedded.netty.factory.NettyServletWebServerFactory;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -12,8 +11,6 @@ import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
 import io.netty.handler.codec.http.multipart.InterfaceHttpData;
 import io.netty.handler.codec.http.multipart.MemoryAttribute;
 import io.netty.util.CharsetUtil;
-import io.netty.util.Recycler;
-import io.netty.util.ReferenceCountUtil;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
@@ -73,48 +70,17 @@ public class NettyHttpServletRequest implements HttpServletRequest {
             "EEE MMM dd HH:mm:ss yyyy"
     };
 
-
-    // ---------------------------------------------------------------------
-    // Public constants
-    // ---------------------------------------------------------------------
-
     /**
      * The default protocol: 'HTTP/1.1'.
      * @since 4.3.7
      */
     public static final String DEFAULT_PROTOCOL = "HTTP/1.1";
 
-    /**
-     * The default scheme: 'http'.
-     * @since 4.3.7
-     */
-    public static final String DEFAULT_SCHEME = HTTP;
-
-
-    /**
-     * The default server name: 'localhost'.
-     */
-    public static final String DEFAULT_SERVER_NAME = "localhost";
-
-    /**
-     * The default server port: '80'.
-     */
-    public static final int DEFAULT_SERVER_PORT = 80;
-
-    // ---------------------------------------------------------------------
-    // Lifecycle properties
-    // ---------------------------------------------------------------------
-
-    private ServletContext servletContext;
     private UriComponents uriComponents;
+
     private boolean active = true;
 
-
-    // ---------------------------------------------------------------------
-    // ServletRequest properties
-    // ---------------------------------------------------------------------
-
-    private final Map<String, Object> attributes = new LinkedHashMap<>();
+    private final Map<String, Object> attributes = new LinkedHashMap<>(4);
 
     @Nullable
     private String characterEncoding;
@@ -124,7 +90,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     private InetSocketAddress remoteInetSocketAddress;
 
     @Nullable
-    private NettyServletInputStream inputStream = NettyServletInputStream.getInstance();
+    private NettyServletInputStream inputStream = new NettyServletInputStream();
 
     @Nullable
     private BufferedReader reader;
@@ -132,12 +98,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     private final Map<String, String[]> parameters = new LinkedHashMap<>(16);
 
     private String protocol = DEFAULT_PROTOCOL;
-
-    private String scheme = DEFAULT_SCHEME;
-
-    private String serverName = DEFAULT_SERVER_NAME;
-
-    private int serverPort = DEFAULT_SERVER_PORT;
 
     /** List of locales in descending order. */
     private final LinkedList<Locale> locales = new LinkedList<>();
@@ -153,23 +113,9 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     private DispatcherType dispatcherType = DispatcherType.REQUEST;
 
-
-    // ---------------------------------------------------------------------
-    // HttpServletRequest properties
-    // ---------------------------------------------------------------------
-
-    @Nullable
-    private String pathInfo;
-
     private String contextPath = "";
 
-    @Nullable
-    private String queryString;
-
-    private final Set<String> userRoles = new HashSet<>();
-
-    @Nullable
-    private String requestURI;
+    private final Set<String> userRoles = new HashSet<>(4);
 
     private String servletPath = "";
 
@@ -181,79 +127,21 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     private boolean requestedSessionIdFromURL = false;
 
-    private final MultiValueMap<String, Part> parts = new LinkedMultiValueMap<>();
+    private final MultiValueMap<String, Part> parts = new LinkedMultiValueMap<>(4);
 
-    private final Recycler.Handle<NettyHttpServletRequest> handle;
-
-    private static final Recycler<NettyHttpServletRequest> RECYCLER = new Recycler<NettyHttpServletRequest>() {
-        @Override
-        protected NettyHttpServletRequest newObject(Handle<NettyHttpServletRequest> handle) {
-            return new NettyHttpServletRequest(handle);
-        }
-    };
-
-    private NettyHttpServletRequest(Recycler.Handle<NettyHttpServletRequest> handle){
-        this.handle=handle;
-    }
-
-    public static final NettyHttpServletRequest getInstance(@Nullable ServletContext servletContext, FullHttpRequest fullHttpRequest, InetSocketAddress remoteInetSocketAddress){
-        NettyHttpServletRequest httpServletRequest = RECYCLER.get();
-        httpServletRequest.setRequestInfo( servletContext, fullHttpRequest, remoteInetSocketAddress);
-        return httpServletRequest;
-    }
-
-    public void recycle(){
-        this.servletContext = null;
-        ReferenceCountUtil.release(this.fullHttpRequest);
-        this.remoteInetSocketAddress = null;
-        this.uriComponents = null;
-        this.requestURI = null;
-        this.locales.add(Locale.ENGLISH);
-        this.inputStream.recycle();
-        this.pathInfo = null;
-        this.queryString = null;
-        this.parameters.clear();
-        this.attributes.clear();
-        this.parts.clear();
-        this.reader = null;
-        this.secure =false;
-        this.asyncStarted = false;
-        this.asyncSupported = false;
-        this.pathInfo=null;
-        this.session=null;
-        this.requestedSessionIdValid = true;
-        this.requestedSessionIdFromCookie = true;
-        this.requestedSessionIdFromURL = false;
-        handle.recycle(this);
-    }
-
-
-    private void setRequestInfo(@Nullable ServletContext servletContext, FullHttpRequest fullHttpRequest, InetSocketAddress remoteInetSocketAddress) {
-        this.servletContext = servletContext;
+    public NettyHttpServletRequest( FullHttpRequest fullHttpRequest, InetSocketAddress remoteInetSocketAddress) {
         this.fullHttpRequest = fullHttpRequest;
         this.remoteInetSocketAddress = remoteInetSocketAddress;
         this.uriComponents = UriComponentsBuilder.fromUriString(fullHttpRequest.uri()).build();
-        this.requestURI = uriComponents.getPath();
         this.locales.add(Locale.ENGLISH);
         this.inputStream.wrap(fullHttpRequest.content());
-        this.setPathInfo(uriComponents.getPath());
-
-        if (uriComponents.getScheme() != null) {
-            this.setScheme(uriComponents.getScheme());
-        }
-        if (uriComponents.getHost() != null) {
-            this.setServerName(uriComponents.getHost());
-        }
-        if (uriComponents.getPort() != -1) {
-            this.setServerPort(uriComponents.getPort());
-        }
         setRequestParams();
     }
     private void setRequestParams() {
         /*URL 转码 */
-        if (uriComponents.getQuery() != null) {
-            this.queryString = UriUtils.decode(uriComponents.getQuery(), CharsetUtil.UTF_8);
-        }
+//        if (uriComponents.getQuery() != null) {
+//            this.queryString = UriUtils.decode(uriComponents.getQuery(), CharsetUtil.UTF_8);
+//        }
         if (HttpMethod.GET.equals(fullHttpRequest.method())) {
             innerGetParams();
         } else if (HttpMethod.POST.equals(fullHttpRequest.method())) {
@@ -307,7 +195,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
      */
     @Override
     public ServletContext getServletContext() {
-        return this.servletContext;
+        return NettyServletWebServerFactory.servletContext;
     }
 
     /**
@@ -354,7 +242,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     @Override
     public Enumeration<String> getAttributeNames() {
         checkActive();
-        return Collections.enumeration(new LinkedHashSet<>(this.attributes.keySet()));
+        return Collections.enumeration(this.attributes.keySet());
     }
 
     @Override
@@ -583,60 +471,21 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         return this.protocol;
     }
 
-    public void setScheme(String scheme) {
-        this.scheme = scheme;
-    }
-
     @Override
     public String getScheme() {
-        return this.scheme;
+        return uriComponents.getScheme();
     }
 
-    public void setServerName(String serverName) {
-        this.serverName = serverName;
-    }
 
     @Override
     public String getServerName() {
-        String host = getHeader(HttpHeaders.HOST);
-        if (host != null) {
-            host = host.trim();
-            if (host.startsWith("[")) {
-                host = host.substring(1, host.indexOf(']'));
-            }
-            else if (host.contains(":")) {
-                host = host.substring(0, host.indexOf(':'));
-            }
-            return host;
-        }
-
-        // else
-        return this.serverName;
-    }
-
-    public void setServerPort(int serverPort) {
-        this.serverPort = serverPort;
+        //TODO 需要验证有服务前缀名称的功能
+        return NettyServletWebServerFactory.serverAddress.getHostString();
     }
 
     @Override
     public int getServerPort() {
-        String host = getHeader(HttpHeaders.HOST);
-        if (host != null) {
-            host = host.trim();
-            int idx;
-            if (host.startsWith("[")) {
-                idx = host.indexOf(':', host.indexOf(']'));
-            }
-            else {
-                idx = host.indexOf(':');
-            }
-            if (idx != -1) {
-                return Integer.parseInt(host.substring(idx + 1));
-            }
-        }
-
-        // else
-        return this.serverPort;
+        return NettyServletWebServerFactory.serverAddress.getPort();
     }
 
     @Override
@@ -725,35 +574,24 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     }
 
     /**
-     * Set the boolean {@code secure} flag indicating whether the mock request
-     * was made using a secure channel, such as HTTPS.
-     * @see #isSecure()
-     * @see #getScheme()
-     * @see #setScheme(String)
-     */
-    public void setSecure(boolean secure) {
-        this.secure = secure;
-    }
-
-    /**
-     * Return {@code true} if the {@link #setSecure secure} flag has been set
+     * Return {@code true} if the  flag has been set
      * to {@code true} or if the {@link #getScheme scheme} is {@code https}.
      * @see javax.servlet.ServletRequest#isSecure()
      */
     @Override
     public boolean isSecure() {
-        return (this.secure || HTTPS.equalsIgnoreCase(this.scheme));
+        return (this.secure || HTTPS.equalsIgnoreCase(uriComponents.getScheme()));
     }
 
     @Override
     public RequestDispatcher getRequestDispatcher(String path) {
-        return this.servletContext.getRequestDispatcher(path);
+        return NettyServletWebServerFactory.servletContext.getRequestDispatcher(path);
     }
 
     @Override
     @Deprecated
     public String getRealPath(String path) {
-        return this.servletContext.getRealPath(path);
+        return NettyServletWebServerFactory.servletContext.getRealPath(path);
     }
 
     @Override
@@ -914,12 +752,12 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     @Override
     public Enumeration<String> getHeaders(String name) {
         return Collections.enumeration(this.fullHttpRequest.headers().getAll((CharSequence)name));
-
     }
 
     @Override
     public Enumeration<String> getHeaderNames() {
         return Collections.enumeration(this.fullHttpRequest.headers().names());
+
     }
 
     @Override
@@ -937,24 +775,16 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         return this.fullHttpRequest.method().name();
     }
 
-    public void setPathInfo(@Nullable String pathInfo) {
-        this.pathInfo = pathInfo;
-    }
-
     @Override
     @Nullable
     public String getPathInfo() {
-        return this.pathInfo;
+        return uriComponents.getPath();
     }
 
     @Override
     @Nullable
     public String getPathTranslated() {
-        return (this.pathInfo != null ? getRealPath(this.pathInfo) : null);
-    }
-
-    public void setContextPath(String contextPath) {
-        this.contextPath = contextPath;
+        return (uriComponents.getPath() != null ? getRealPath(uriComponents.getPath()) : null);
     }
 
     @Override
@@ -962,14 +792,13 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         return this.contextPath;
     }
 
-    public void setQueryString(@Nullable String queryString) {
-        this.queryString = queryString;
-    }
-
     @Override
     @Nullable
     public String getQueryString() {
-        return this.queryString;
+        if (StringUtils.isEmpty(uriComponents.getQuery())){
+            return null;
+        }
+        return UriUtils.decode(uriComponents.getQuery(), CharsetUtil.UTF_8);
     }
 
     @Override
@@ -978,15 +807,9 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         //TODO 暂未实现RemoteUser
         return null;
     }
-
-    public void addUserRole(String role) {
-        this.userRoles.add(role);
-    }
-
     @Override
     public boolean isUserInRole(String role) {
-        return (this.userRoles.contains(role) || (this.servletContext instanceof NettyServletContext &&
-                ((NettyServletContext) this.servletContext).getDeclaredRoles().contains(role)));
+        return (this.userRoles.contains(role) || NettyServletWebServerFactory.servletContext.getDeclaredRoles().contains(role));
     }
     @Override
     public Principal getUserPrincipal() {
@@ -1000,14 +823,10 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         return null;
     }
 
-    public void setRequestURI(@Nullable String requestURI) {
-        this.requestURI = requestURI;
-    }
-
     @Override
     @Nullable
     public String getRequestURI() {
-        return this.requestURI;
+        return uriComponents.getPath();
     }
 
     @Override
@@ -1028,10 +847,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         return url;
     }
 
-    public void setServletPath(String servletPath) {
-        this.servletPath = servletPath;
-    }
-
     @Override
     public String getServletPath() {
         return this.servletPath;
@@ -1047,7 +862,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         }
         // Create new session if necessary.
         if (this.session == null && create) {
-            this.session = new MockHttpSession(this.servletContext);
+            this.session = new MockHttpSession(NettyServletWebServerFactory.servletContext);
         }
         return this.session;
     }
@@ -1072,26 +887,15 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         return this.session.getId();
     }
 
-    public void setRequestedSessionIdValid(boolean requestedSessionIdValid) {
-        this.requestedSessionIdValid = requestedSessionIdValid;
-    }
 
     @Override
     public boolean isRequestedSessionIdValid() {
         return this.requestedSessionIdValid;
     }
 
-    public void setRequestedSessionIdFromCookie(boolean requestedSessionIdFromCookie) {
-        this.requestedSessionIdFromCookie = requestedSessionIdFromCookie;
-    }
-
     @Override
     public boolean isRequestedSessionIdFromCookie() {
         return this.requestedSessionIdFromCookie;
-    }
-
-    public void setRequestedSessionIdFromURL(boolean requestedSessionIdFromURL) {
-        this.requestedSessionIdFromURL = requestedSessionIdFromURL;
     }
 
     @Override
@@ -1117,10 +921,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     @Override
     public void logout() throws ServletException {
-    }
-
-    public void addPart(Part part) {
-        this.parts.add(part.getName(), part);
     }
 
     @Override
