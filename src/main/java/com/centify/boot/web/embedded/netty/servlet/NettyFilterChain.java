@@ -1,5 +1,7 @@
 package com.centify.boot.web.embedded.netty.servlet;
 
+import io.netty.util.Recycler;
+
 import javax.servlet.*;
 import java.io.IOException;
 import java.util.Iterator;
@@ -20,12 +22,33 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * <pre>
  */
 public class NettyFilterChain implements FilterChain {
-    private final Iterator<Filter> filterIterator;
-    private final Servlet servlet;
+    private  Iterator<Filter> filterIterator;
+    private  Servlet servlet;
 
-    public NettyFilterChain(Servlet servlet, Iterable<Filter> filters) throws ServletException {
-        this.filterIterator = checkNotNull(filters).iterator();
-        this.servlet = checkNotNull(servlet);
+    private final Recycler.Handle<NettyFilterChain> handle;
+
+    private static final Recycler<NettyFilterChain> RECYCLER = new Recycler<NettyFilterChain>() {
+        @Override
+        protected NettyFilterChain newObject(Handle<NettyFilterChain> handle) {
+            return new NettyFilterChain(handle);
+        }
+    };
+
+    private NettyFilterChain(Recycler.Handle<NettyFilterChain> handle){
+        this.handle=handle;
+    }
+
+    public static final NettyFilterChain getInstance(Servlet servlet, Iterable<Filter> filters){
+        NettyFilterChain chain = RECYCLER.get();
+        chain.servlet =servlet;
+        chain.filterIterator = filters.iterator();
+        return chain;
+    }
+
+    public void recycle(){
+        filterIterator = null;
+        servlet = null;
+        handle.recycle(this);
     }
 
     @Override
@@ -34,6 +57,7 @@ public class NettyFilterChain implements FilterChain {
             filterIterator.next().doFilter(request, response, this);
         } else {
             servlet.service(request, response);
+            recycle();
         }
     }
 

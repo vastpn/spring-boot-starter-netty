@@ -1,21 +1,23 @@
 package com.centify.boot.web.embedded.netty.servlet;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.CombinedHttpHeaders;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.lang.Nullable;
-import org.springframework.mock.web.DelegatingServletOutputStream;
 import org.springframework.web.util.WebUtils;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
-import java.io.*;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
-import java.util.TimeZone;
 
 /**
  * <pre>
@@ -39,14 +41,9 @@ public class NettyHttpServletResponse implements HttpServletResponse {
 
     private boolean charset = false;
 
-    private final ByteArrayOutputStream content = new ByteArrayOutputStream(1024);
-
-    private final ServletOutputStream outputStream = new NettyHttpServletResponse.ResponseServletOutputStream(this.content);
+    private final NettyServletOutputStream outputStream;
 
     private final HttpHeaders headers = new CombinedHttpHeaders(false);
-
-    @Nullable
-    private PrintWriter writer;
 
     @Nullable
     private String contentType;
@@ -58,6 +55,10 @@ public class NettyHttpServletResponse implements HttpServletResponse {
     private Locale locale = Locale.getDefault();
 
     private int status = HttpServletResponse.SC_OK;
+
+    public NettyHttpServletResponse(NettyServletOutputStream outputStream) {
+        this.outputStream = outputStream;
+    }
 
     public HttpHeaders getHeaders() {
         return headers;
@@ -93,16 +94,7 @@ public class NettyHttpServletResponse implements HttpServletResponse {
 
     @Override
     public PrintWriter getWriter() throws UnsupportedEncodingException {
-        if (this.writer == null) {
-            Writer targetWriter = (this.characterEncoding != null ?
-                    new OutputStreamWriter(this.content, this.characterEncoding) : new OutputStreamWriter(this.content));
-            this.writer = new NettyHttpServletResponse.ResponsePrintWriter(targetWriter);
-        }
-        return this.writer;
-    }
-
-    public byte[] getContentAsByteArray() {
-        return this.content.toByteArray();
+        return null;
     }
 
 
@@ -161,14 +153,7 @@ public class NettyHttpServletResponse implements HttpServletResponse {
 
     @Override
     public void resetBuffer() {
-        this.content.reset();
-    }
 
-    private void setCommittedIfBufferSizeExceeded() {
-        int bufSize = getBufferSize();
-        if (bufSize > 0 && this.content.size() > bufSize) {
-            setCommitted(true);
-        }
     }
 
     public void setCommitted(boolean committed) {
@@ -365,76 +350,6 @@ public class NettyHttpServletResponse implements HttpServletResponse {
     @Override
     public int getStatus() {
         return this.status;
-    }
-
-    /**
-     * Inner class that adapts the ServletOutputStream to mark the
-     * response as committed once the buffer size is exceeded.
-     */
-    private class ResponseServletOutputStream extends DelegatingServletOutputStream {
-
-        public ResponseServletOutputStream(OutputStream out) {
-            super(out);
-        }
-
-        @Override
-        public void write(int b) throws IOException {
-            super.write(b);
-            super.flush();
-            setCommittedIfBufferSizeExceeded();
-        }
-
-        @Override
-        public void flush() throws IOException {
-            super.flush();
-            setCommitted(true);
-        }
-    }
-
-
-    /**
-     * Inner class that adapts the PrintWriter to mark the
-     * response as committed once the buffer size is exceeded.
-     */
-    private class ResponsePrintWriter extends PrintWriter {
-
-        public ResponsePrintWriter(Writer out) {
-            super(out, true);
-        }
-
-        @Override
-        public void write(char[] buf, int off, int len) {
-            super.write(buf, off, len);
-            super.flush();
-            setCommittedIfBufferSizeExceeded();
-        }
-
-        @Override
-        public void write(String s, int off, int len) {
-            super.write(s, off, len);
-            super.flush();
-            setCommittedIfBufferSizeExceeded();
-        }
-
-        @Override
-        public void write(int c) {
-            super.write(c);
-            super.flush();
-            setCommittedIfBufferSizeExceeded();
-        }
-
-        @Override
-        public void flush() {
-            super.flush();
-            setCommitted(true);
-        }
-
-        @Override
-        public void close() {
-            super.flush();
-            super.close();
-            setCommitted(true);
-        }
     }
 
 }

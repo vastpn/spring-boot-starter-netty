@@ -4,6 +4,7 @@ import com.centify.boot.web.embedded.netty.factory.NettyServletWebServerFactory;
 import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletRequest;
 import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletResponse;
 import com.centify.boot.web.embedded.netty.servlet.NettyRequestDispatcher;
+import com.centify.boot.web.embedded.netty.servlet.NettyServletOutputStream;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
@@ -13,6 +14,8 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
 import io.netty.util.ReferenceCountUtil;
 import org.springframework.http.MediaType;
+
+import javax.servlet.ServletOutputStream;
 
 /**
  * <pre>
@@ -40,10 +43,11 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<NettyH
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, NettyHttpServletRequest servletRequest) throws Exception {
-        ByteBuf result = null;
+        ByteBuf result = ctx.alloc().ioBuffer();
         try{
             /*Servlet Request、Response*/
-            NettyHttpServletResponse servletResponse = new NettyHttpServletResponse();
+            NettyServletOutputStream outputStream = new NettyServletOutputStream(result);
+            NettyHttpServletResponse servletResponse = new NettyHttpServletResponse(outputStream);
             NettyRequestDispatcher dispatcherServlet =
                     (NettyRequestDispatcher) NettyServletWebServerFactory.servletContext
                             .getRequestDispatcher(servletRequest.getRequestURI());
@@ -53,9 +57,6 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<NettyH
             if (!servletRequest.isActive()){
                 return ;
             }
-
-            /*Get Servlet Response , ByteBuf zero Copy*/
-            result = Unpooled.wrappedBuffer(servletResponse.getContentAsByteArray());
 
             /*Create Default HttpResponse*/
             FullHttpResponse fullHttpResponse = new DefaultFullHttpResponse(
@@ -75,6 +76,7 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<NettyH
             ctx.writeAndFlush(fullHttpResponse).addListener(ChannelFutureListener.CLOSE);
         }finally {
             if(servletRequest!=null){
+                servletRequest.close();
                 ReferenceCountUtil.release(servletRequest);
             }
             if (result!=null){
