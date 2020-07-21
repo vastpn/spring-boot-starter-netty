@@ -10,4 +10,7 @@
 #### 服务端调优2
     -Xmx4096m -Xms4096m -Xmn2048m -Xss256k -XX:SurvivorRatio=6 -XX:ParallelGCThreads=8 -XX:MaxTenuringThreshold=0 -XX:+UseConcMarkSweepGC
     
+#### V1.1.0 GA版本
+     支持POST、GET、FORM、Filter、Intercept，支持单/多文件上传 性能>=1.38万笔/秒
 #### 服务端调优3(V1.1.0 GA)
+    -Xmx4096m  -Xms4096m  -Xmn2048m  -Xss256k  -XX:+UseBiasedLocking -XX:SurvivorRatio=8 -XX:ParallelGCThreads=8 -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:+UseCMSInitiatingOccupancyOnly  -XX:+UseFastAccessorMethods  -XX:LargePageSizeInBytes=128m  -XX:+CMSParallelRemarkEnabled
