@@ -9,3 +9,5 @@
     
 #### 服务端调优2
     -Xmx4096m -Xms4096m -Xmn2048m -Xss256k -XX:SurvivorRatio=6 -XX:ParallelGCThreads=8 -XX:MaxTenuringThreshold=0 -XX:+UseConcMarkSweepGC
+    
+#### 服务端调优3(V1.1.0 GA)
