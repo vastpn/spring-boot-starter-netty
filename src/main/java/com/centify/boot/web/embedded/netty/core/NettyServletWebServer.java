@@ -1,6 +1,7 @@
 package com.centify.boot.web.embedded.netty.core;
 
 import com.centify.boot.web.embedded.netty.context.NettyServletContext;
+import com.centify.boot.web.embedded.netty.factory.NettyServletWebServerFactory;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;

@@ -4,6 +4,8 @@ import com.centify.boot.web.embedded.netty.servlet.NettyFilterChain;
 import com.centify.boot.web.embedded.netty.servlet.NettyFilterRegistration;
 import com.centify.boot.web.embedded.netty.servlet.NettyRequestDispatcher;
 import com.centify.boot.web.embedded.netty.servlet.NettyServletRegistration;
+import com.centify.boot.web.embedded.netty.utils.SpringContextUtil;
+import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.DefaultResourceLoader;
@@ -12,9 +14,12 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.MediaType;
 import org.springframework.http.MediaTypeFactory;
 import org.springframework.lang.Nullable;
-import org.springframework.mock.web.MockRequestDispatcher;
 import org.springframework.mock.web.MockSessionCookieConfig;
-import org.springframework.util.*;
+import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
+import org.springframework.util.MimeType;
+import org.springframework.util.StringUtils;
+import org.springframework.web.servlet.DispatcherServlet;
 import org.springframework.web.util.WebUtils;
 
 import javax.servlet.*;
@@ -74,25 +79,21 @@ public class NettyServletContext implements ServletContext {
 
     private String defaultServletName = COMMON_DEFAULT_SERVLET_NAME;
 
-    private String servletContextName = "MockServletContext";
+    private final Map<String, NettyServletRegistration> servlets = new HashMap<>(2);
 
-    private final Map<String, RequestDispatcher> namedRequestDispatchers = new HashMap<>();
+    private final Map<String, String> servletMappings = new HashMap<>(2);
 
-    private final Map<String, NettyServletRegistration> servlets = new HashMap<>();
+    private final Map<String, NettyFilterRegistration> filters = new HashMap<>(8);
 
-    private final Map<String, String> servletMappings = new HashMap<>();
+    private final Map<String, ServletContext> contexts = new HashMap<>(2);
 
-    private final Map<String, NettyFilterRegistration> filters = new HashMap<>();
+    private final Map<String, MediaType> mimeTypes = new LinkedHashMap<>(2);
 
-    private final Map<String, ServletContext> contexts = new HashMap<>();
+    private final Set<String> declaredRoles = new LinkedHashSet<>(2);
 
-    private final Map<String, MediaType> mimeTypes = new LinkedHashMap<>();
+    private final Map<String, String> initParameters = new LinkedHashMap<>(2);
 
-    private final Set<String> declaredRoles = new LinkedHashSet<>();
-
-    private final Map<String, String> initParameters = new LinkedHashMap<>();
-
-    private final Map<String, Object> attributes = new LinkedHashMap<>();
+    private final Map<String, Object> attributes = new LinkedHashMap<>(8);
 
     @Nullable
     private Set<SessionTrackingMode> sessionTrackingModes;
@@ -133,7 +134,7 @@ public class NettyServletContext implements ServletContext {
     /**
      * Create a new {@code MockServletContext} using the supplied resource base
      * path and resource loader.
-     * <p>Registers a {@link MockRequestDispatcher} for the Servlet named
+     * <p>Registers a for the Servlet named
      * {@literal 'default'}.
      * @param resourceBasePath the root directory of the WAR (should not end with a slash)
      * @param resourceLoader the ResourceLoader to use (or null for the default)
@@ -148,8 +149,9 @@ public class NettyServletContext implements ServletContext {
         if (tempDir != null) {
             this.attributes.put(WebUtils.TEMP_DIR_CONTEXT_ATTRIBUTE, new File(tempDir));
         }
-
-        registerNamedDispatcher(this.defaultServletName, new MockRequestDispatcher(this.defaultServletName));
+        FilterChain filterChain = NettyFilterChain.getInstance(null, this.filters.entrySet().stream()
+                .map(entry->entry.getValue().getFilter()).collect(Collectors.toList()));
+        registerNamedDispatcher(this.defaultServletName, new NettyRequestDispatcher(filterChain));
     }
     /**
      * Build a full resource location for the given path, prepending the resource
@@ -164,17 +166,9 @@ public class NettyServletContext implements ServletContext {
         return this.resourceBasePath + path;
     }
 
-    public void setContextPath(String contextPath) {
-        this.contextPath = contextPath;
-    }
-
     @Override
     public String getContextPath() {
         return this.contextPath;
-    }
-
-    public void registerContext(String contextPath, ServletContext context) {
-        this.contexts.put(contextPath, context);
     }
 
     @Override
@@ -185,17 +179,9 @@ public class NettyServletContext implements ServletContext {
         return this.contexts.get(contextPath);
     }
 
-    public void setMajorVersion(int majorVersion) {
-        this.majorVersion = majorVersion;
-    }
-
     @Override
     public int getMajorVersion() {
         return this.majorVersion;
-    }
-
-    public void setMinorVersion(int minorVersion) {
-        this.minorVersion = minorVersion;
     }
 
     @Override
@@ -203,17 +189,9 @@ public class NettyServletContext implements ServletContext {
         return this.minorVersion;
     }
 
-    public void setEffectiveMajorVersion(int effectiveMajorVersion) {
-        this.effectiveMajorVersion = effectiveMajorVersion;
-    }
-
     @Override
     public int getEffectiveMajorVersion() {
         return this.effectiveMajorVersion;
-    }
-
-    public void setEffectiveMinorVersion(int effectiveMinorVersion) {
-        this.effectiveMinorVersion = effectiveMinorVersion;
     }
 
     @Override
@@ -232,16 +210,6 @@ public class NettyServletContext implements ServletContext {
                     map(MimeType::toString)
                     .orElse(null);
         }
-    }
-
-    /**
-     * Adds a mime type mapping for use by {@link #getMimeType(String)}.
-     * @param fileExtension a file extension, such as {@code txt}, {@code gif}
-     * @param mimeType the mime type
-     */
-    public void addMimeType(String fileExtension, MediaType mimeType) {
-        Assert.notNull(fileExtension, "'fileExtension' must not be null");
-        this.mimeTypes.put(fileExtension, mimeType);
     }
 
     @Override
@@ -310,68 +278,33 @@ public class NettyServletContext implements ServletContext {
             // FIXME proper path matching
             FilterChain filterChain = NettyFilterChain.getInstance(servlet, this.filters.entrySet().stream()
                     .map(entry->entry.getValue().getFilter()).collect(Collectors.toList()));
-            return new NettyRequestDispatcher(this, filterChain);
+            return new NettyRequestDispatcher(filterChain);
         } catch (ServletException e) {
             // TODO log exception
             return null;
         }
     }
 
+    @SneakyThrows
     @Override
-    public RequestDispatcher getNamedDispatcher(String path) {
-        return this.namedRequestDispatchers.get(path);
+    public RequestDispatcher getNamedDispatcher(String name) {
+        return (RequestDispatcher) (this.servlets.get(name)).getServlet();
     }
 
     /**
-     * Register a {@link RequestDispatcher} (typically a {@link MockRequestDispatcher})
+     * Register a {@link RequestDispatcher} (typically a {@link })
      * that acts as a wrapper for the named Servlet.
      * @param name the name of the wrapped Servlet
      * @param requestDispatcher the dispatcher that wraps the named Servlet
      * @see #getNamedDispatcher
-     * @see #unregisterNamedDispatcher
+     * @see #
      */
     public void registerNamedDispatcher(String name, RequestDispatcher requestDispatcher) {
         Assert.notNull(name, "RequestDispatcher name must not be null");
         Assert.notNull(requestDispatcher, "RequestDispatcher must not be null");
-        this.namedRequestDispatchers.put(name, requestDispatcher);
+//        this.namedRequestDispatchers.put(name, requestDispatcher);
     }
 
-    /**
-     * Unregister the {@link RequestDispatcher} with the given name.
-     * @param name the name of the dispatcher to unregister
-     * @see #getNamedDispatcher
-     * @see #registerNamedDispatcher
-     */
-    public void unregisterNamedDispatcher(String name) {
-        Assert.notNull(name, "RequestDispatcher name must not be null");
-        this.namedRequestDispatchers.remove(name);
-    }
-
-    /**
-     * Get the name of the <em>default</em> {@code Servlet}.
-     * <p>Defaults to {@literal 'default'}.
-     * @see #setDefaultServletName
-     */
-    public String getDefaultServletName() {
-        return this.defaultServletName;
-    }
-
-    /**
-     * Set the name of the <em>default</em> {@code Servlet}.
-     * <p>Also {@link #unregisterNamedDispatcher unregisters} the current default
-     * {@link RequestDispatcher} and {@link #registerNamedDispatcher replaces}
-     * it with a {@link MockRequestDispatcher} for the provided
-     * {@code defaultServletName}.
-     * @param defaultServletName the name of the <em>default</em> {@code Servlet};
-     * never {@code null} or empty
-     * @see #getDefaultServletName
-     */
-    public void setDefaultServletName(String defaultServletName) {
-        Assert.hasText(defaultServletName, "defaultServletName must not be null or empty");
-        unregisterNamedDispatcher(this.defaultServletName);
-        this.defaultServletName = defaultServletName;
-        registerNamedDispatcher(this.defaultServletName, new MockRequestDispatcher(this.defaultServletName));
-    }
 
     @Deprecated
     @Override
@@ -452,11 +385,6 @@ public class NettyServletContext implements ServletContext {
         return true;
     }
 
-    public void addInitParameter(String name, String value) {
-        Assert.notNull(name, "Parameter name must not be null");
-        this.initParameters.put(name, value);
-    }
-
     @Override
     @Nullable
     public Object getAttribute(String name) {
@@ -485,14 +413,9 @@ public class NettyServletContext implements ServletContext {
         Assert.notNull(name, "Attribute name must not be null");
         this.attributes.remove(name);
     }
-
-    public void setServletContextName(String servletContextName) {
-        this.servletContextName = servletContextName;
-    }
-
     @Override
     public String getServletContextName() {
-        return this.servletContextName;
+        return this.getClass().getSimpleName();
     }
 
     @Override
@@ -536,18 +459,10 @@ public class NettyServletContext implements ServletContext {
         return this.sessionCookieConfig;
     }
 
-
-
-    //---------------------------------------------------------------------
-    // Unsupported Servlet 3.0 registration methods
-    //---------------------------------------------------------------------
-
     @Override
     public JspConfigDescriptor getJspConfigDescriptor() {
         throw new UnsupportedOperationException();
     }
-
-
 
     @Override
     public ServletRegistration.Dynamic addServlet(String servletName, String className) {

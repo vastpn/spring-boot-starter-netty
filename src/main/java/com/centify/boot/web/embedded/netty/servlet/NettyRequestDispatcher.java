@@ -18,11 +18,9 @@ import java.io.IOException;
  */
 public class NettyRequestDispatcher implements RequestDispatcher {
     public static final String DISPATCHER_TYPE = NettyRequestDispatcher.class.getName() + ".DISPATCHER_TYPE";
-    private final ServletContext context;
     private final FilterChain filterChain;
 
-    public NettyRequestDispatcher(ServletContext context, FilterChain filterChain) {
-        this.context = context;
+    public NettyRequestDispatcher(FilterChain filterChain) {
         this.filterChain = filterChain;
     }
 
