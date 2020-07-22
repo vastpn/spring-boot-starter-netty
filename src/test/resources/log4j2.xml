@@ -9,7 +9,7 @@
             </PatternLayout>
         </Console>
         <!--添加一个文件追加器-->
-        <File name="File" fileName="logs/jvv-bu-sample/jvv-bu-sample.log"  append="false">
+        <File name="File" fileName="logs/@pom.artifactId@/@pom.artifactId@.log"  append="false">
             <PatternLayout>
                 <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %class{36} %L %M - %msg%xEx%n</pattern>
             </PatternLayout>
