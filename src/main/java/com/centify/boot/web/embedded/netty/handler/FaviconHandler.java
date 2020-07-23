@@ -44,29 +44,12 @@ public class FaviconHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         try {
             if (!fullHttpRequest.decoderResult().isSuccess() ||
                     NettyConstant.HTTP_REQUEST_FAVICON.equalsIgnoreCase(fullHttpRequest.uri())) {
-
                 return;
             }
-
-//            Environment environment = SpringContextUtil.getBean(Environment.class);
-//            System.out.println("application.name="+environment.getProperty("spring.application.name"));
-//            System.out.println("server.port="+environment.getProperty("server.port"));
-
-//            System.out.println("getAddress().getHostAddress()="+remoteInetSocketAddress.getAddress().getHostAddress());
-//            System.out.println("getAddress().getHostName()="+remoteInetSocketAddress.getAddress().getHostName());
-//            System.out.println("getAddress().getCanonicalHostName()="+remoteInetSocketAddress.getAddress().getCanonicalHostName());
-//            System.out.println("getPort="+remoteInetSocketAddress.getPort());
-//            System.out.println("getHostName="+remoteInetSocketAddress.getHostName());
-//            System.out.println("getHostString="+remoteInetSocketAddress.getHostString());
-//            System.out.println("--------");
-//            System.out.println("客户端IP="+getRemoteIP(fullHttpRequest,ctx));
-
             ctx.fireChannelRead(new NettyHttpServletRequest(
                     fullHttpRequest,(InetSocketAddress)ctx.channel().remoteAddress()));
         }finally {
-            ReferenceCountUtil.release(fullHttpRequest);
             ctx.channel().pipeline().remove(this);
-            ctx.close();
         }
     }
 

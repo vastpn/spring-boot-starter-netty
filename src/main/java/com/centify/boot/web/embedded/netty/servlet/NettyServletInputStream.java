@@ -128,7 +128,7 @@ public class NettyServletInputStream extends ServletInputStream {
         byteBuf.readBytes(bytes, off, readableBytes);
         //返回实际读取的字节数
         int size  = readableBytes - byteBuf.readableBytes();
-//        ReferenceCountUtil.release(byteBuf);
+        ReferenceCountUtil.release(byteBuf);
         return size;
     }
 

@@ -77,12 +77,10 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<NettyH
         }finally {
             if(servletRequest!=null){
                 servletRequest.close();
-                ReferenceCountUtil.release(servletRequest);
             }
             if (result!=null){
                 ReferenceCountUtil.release(result);
             }
-            ctx.close();
         }
 
     }
