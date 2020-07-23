@@ -38,7 +38,7 @@ public class NettyServletInputStream extends ServletInputStream {
         wrap(source);
     }
     public void wrap(ByteBuf source) {
-        ReferenceCountUtil.release(this.source);
+//        ReferenceCountUtil.release(this.source);
         this.closed.set(false);
         this.source = source;
         this.contentLength = source.capacity();
@@ -103,8 +103,7 @@ public class NettyServletInputStream extends ServletInputStream {
 
     @Override
     public void close() throws IOException {
-        ReferenceCountUtil.release(source);
-        source = null;
+        this.source = null;
     }
 
     /**
@@ -129,7 +128,7 @@ public class NettyServletInputStream extends ServletInputStream {
         byteBuf.readBytes(bytes, off, readableBytes);
         //返回实际读取的字节数
         int size  = readableBytes - byteBuf.readableBytes();
-        ReferenceCountUtil.release(byteBuf);
+//        ReferenceCountUtil.release(byteBuf);
         return size;
     }
 

@@ -3,6 +3,7 @@ package com.centify.boot.web.embedded.netty.servlet;
 import com.centify.boot.web.embedded.netty.factory.NettyServletWebServerFactory;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.HttpConstants;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
@@ -473,14 +474,17 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     @Override
     public String getScheme() {
-        return uriComponents.getScheme();
+        return fullHttpRequest.protocolVersion().protocolName();
     }
 
+    private String getHost(){
+        return getHeader(HttpHeaderNames.HOST.toString());
+    }
 
     @Override
     public String getServerName() {
         //TODO 需要验证有服务前缀名称的功能
-        return NettyServletWebServerFactory.serverAddress.getHostString();
+        return NettyServletWebServerFactory.serverAddress.getAddress().getHostAddress();
     }
 
     @Override
@@ -580,7 +584,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
      */
     @Override
     public boolean isSecure() {
-        return (this.secure || HTTPS.equalsIgnoreCase(uriComponents.getScheme()));
+        return (this.secure || HTTPS.equalsIgnoreCase(getScheme()));
     }
 
     @Override
@@ -831,19 +835,8 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     @Override
     public StringBuffer getRequestURL() {
-        String scheme = getScheme();
-        String server = getServerName();
-        int port = getServerPort();
-        String uri = getRequestURI();
-
-        StringBuffer url = new StringBuffer(scheme).append("://").append(server);
-        if (port > 0 && ((HTTP.equalsIgnoreCase(scheme) && port != 80) ||
-                (HTTPS.equalsIgnoreCase(scheme) && port != 443))) {
-            url.append(':').append(port);
-        }
-        if (StringUtils.hasText(uri)) {
-            url.append(uri);
-        }
+        StringBuffer url = new StringBuffer();
+        url.append(getScheme().toLowerCase()).append("://").append(getHost()).append(getRequestURI());
         return url;
     }
 
