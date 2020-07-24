@@ -140,7 +140,7 @@ public class SpringContextUtil implements ApplicationContextAware {
 	 * @return bean实例集合
 	 * <pre>
 	 */
-    public   static <T> Map<String, T> getBeansByType(Class<T> t) {
+    public static <T> Map<String, T> getBeansByType(Class<T> t) {
         Map<String, T> beans = application.getBeansOfType(t);
         return beans;
     }

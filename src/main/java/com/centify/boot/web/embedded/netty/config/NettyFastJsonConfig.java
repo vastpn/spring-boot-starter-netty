@@ -79,7 +79,7 @@ public class NettyFastJsonConfig implements WebMvcConfigurer {
         fastJsonConverter.setFastJsonConfig(fastJsonConfig);
 
         List<MediaType> supportedMediaTypes = new ArrayList<>();
-        supportedMediaTypes.add(MediaType.APPLICATION_JSON_UTF8);
+        supportedMediaTypes.add(MediaType.APPLICATION_JSON);
         fastJsonConverter.setSupportedMediaTypes(supportedMediaTypes);
 
 
