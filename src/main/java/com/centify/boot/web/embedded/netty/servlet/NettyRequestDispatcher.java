@@ -5,8 +5,8 @@ import java.io.IOException;
 
 /**
  * <pre>
- * <b>TODO</b>
- * <b>Describe:TODO</b>
+ * <b>Servlet分发器</b>
+ * <b>Describe:由过滤器链执行Servlet过滤器组</b>
  *
  * <b>Author: tanlin [2020/6/16 18:55]</b>
  * <b>Copyright:</b> Copyright 2008-2026 http://www.jinvovo.com Technology Co., Ltd. All rights reserved.

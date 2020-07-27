@@ -2,13 +2,10 @@ package com.centify.boot.web.embedded.netty.handler;
 
 import com.centify.boot.web.embedded.netty.constant.NettyConstant;
 import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletRequest;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.util.ReferenceCountUtil;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,8 +13,11 @@ import java.net.InetSocketAddress;
 
 /**
  * <pre>
- * <b>TODO</b>
- * <b>Describe:TODO</b>
+ * <b>Servlet业务处理器</b>
+ * <b>Describe:
+ * 1、验证通道
+ * 2、屏蔽并丢弃Favicon浏览器请求
+ * 3、包装FullHttpRequest 到 ServletRequest请求</b>
  *
  * <b>Author: tanlin [2020/7/6 11:21]</b>
  * <b>Copyright:</b> Copyright 2008-2026 http://www.jinvovo.com Technology Co., Ltd. All rights reserved.
@@ -42,12 +42,17 @@ public class FaviconHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
         try {
+            /**验证请求、屏蔽Favicon*/
             if (!fullHttpRequest.decoderResult().isSuccess() ||
                     NettyConstant.HTTP_REQUEST_FAVICON.equalsIgnoreCase(fullHttpRequest.uri())) {
+                /*SimpleChannelInboundHandler 已自动释放资源*/
                 return;
             }
+            /**转换Netty请求到ServletRequest，继续执行Netty处理器（客户端IP、服务端IP信息已获取到并赋值到ServletRequest中）*/
             ctx.fireChannelRead(new NettyHttpServletRequest(
                     fullHttpRequest,(InetSocketAddress)ctx.channel().remoteAddress()));
+        }catch (Exception ex){
+            LOGGER.error(this.getClass().getName()+" 处理异常",ex);
         }finally {
             ctx.channel().pipeline().remove(this);
         }
@@ -56,36 +61,6 @@ public class FaviconHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         ctx.close();
-    }
-    /**
-     * <pre>
-     * <b>获取远程客户端IP</b>
-     * <b>Describe:</b>
-     *
-     * <b>Author: tanlin [2020/5/24 15:28]</b>
-     *
-     * @param httpRequest http请求对象
-     * @param channelHandlerContext 数据管道上下文对象
-     * @return String 客户端IP
-     * <pre>
-     */
-    public String getRemoteIP(FullHttpRequest httpRequest, ChannelHandlerContext channelHandlerContext) {
-        Channel channel = channelHandlerContext.channel();
-        String ip = "";
-        try {
-            String ipForwarded = httpRequest.headers().get("x-forwarded-for");
-            if (StringUtils.isBlank(ipForwarded) || "unknown".equalsIgnoreCase(ipForwarded)) {
-                InetSocketAddress insocket = (InetSocketAddress) channel.remoteAddress();
-                ip = insocket.getAddress().getHostAddress();
-            } else {
-                ip = ipForwarded;
-            }
-        } catch (Exception e) {
-            LOGGER.error("getRemoteIP(): get remote ip fail!", e);
-        }
-        if ("0:0:0:0:0:0:0:1".equals(ip)) {
-            ip = "127.0.0.1";
-        }
-        return ip;
+//        LOGGER.error(this.getClass().getName()+" exceptionCaught",cause);
     }
 }

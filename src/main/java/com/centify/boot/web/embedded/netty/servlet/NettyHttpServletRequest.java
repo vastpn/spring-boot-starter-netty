@@ -3,7 +3,6 @@ package com.centify.boot.web.embedded.netty.servlet;
 import com.centify.boot.web.embedded.netty.factory.NettyServletWebServerFactory;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.HttpConstants;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
@@ -41,7 +40,7 @@ import java.util.stream.Collectors;
 
 /**
  * <pre>
- * <b>TODO</b>
+ * <b>ServletRequest 对象，实现Servlet3.x 请求对象</b>
  * <b>Describe:TODO</b>
  *
  * <b>Author: tanlin [2020/7/13 14:02]</b>
@@ -139,10 +138,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         setRequestParams();
     }
     private void setRequestParams() {
-        /*URL 转码 */
-//        if (uriComponents.getQuery() != null) {
-//            this.queryString = UriUtils.decode(uriComponents.getQuery(), CharsetUtil.UTF_8);
-//        }
         if (HttpMethod.GET.equals(fullHttpRequest.method())) {
             innerGetParams();
         } else if (HttpMethod.POST.equals(fullHttpRequest.method())) {

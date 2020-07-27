@@ -10,8 +10,10 @@ import javax.servlet.http.HttpServletResponse;
 
 /**
  * <pre>
- * <b>Http拦截器</b>
- * <b>Describe:</b>
+ * <b>Http拦截器（空拦截器）</b>
+ * <b>Describe:
+ * 1、用于验证主键拦截器是否可用
+ * 2、Web项目可以按照此类，实现Spring拦截器功能</b>
  *
  * <b>Author: tanlin [2020/6/3 18:51]</b>
  * <b>Copyright:</b> Copyright 2008-2026 http://www.jinvovo.com Technology Co., Ltd. All rights reserved.
@@ -27,7 +29,6 @@ public class HttpGlobInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         //TODO Spring Demo 拦截器实现
-//        System.out.println("Interceptor");
         return true;
     }
 

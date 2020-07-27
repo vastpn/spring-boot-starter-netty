@@ -21,8 +21,8 @@ import java.util.Locale;
 
 /**
  * <pre>
- * <b>TODO</b>
- * <b>Describe:TODO</b>
+ * <b>ServletResponse对象</b>
+ * <b>Describe:实现Servlet3.x 响应对象</b>
  *
  * <b>Author: tanlin [2020/7/14 11:04]</b>
  * <b>Copyright:</b> Copyright 2008-2026 http://www.jinvovo.com Technology Co., Ltd. All rights reserved.

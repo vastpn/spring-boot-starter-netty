@@ -4,7 +4,6 @@ import com.centify.boot.web.embedded.netty.servlet.NettyFilterChain;
 import com.centify.boot.web.embedded.netty.servlet.NettyFilterRegistration;
 import com.centify.boot.web.embedded.netty.servlet.NettyRequestDispatcher;
 import com.centify.boot.web.embedded.netty.servlet.NettyServletRegistration;
-import com.centify.boot.web.embedded.netty.utils.SpringContextUtil;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +18,6 @@ import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.MimeType;
 import org.springframework.util.StringUtils;
-import org.springframework.web.servlet.DispatcherServlet;
 import org.springframework.web.util.WebUtils;
 
 import javax.servlet.*;

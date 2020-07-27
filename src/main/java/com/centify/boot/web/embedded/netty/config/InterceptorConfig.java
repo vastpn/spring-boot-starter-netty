@@ -14,8 +14,9 @@ import java.util.List;
 
 /**
  * <pre>
- * <b>WEB客户端限流配置器</b>
- * <b>Describe:配置客户端限流拦截器</b>
+ * <b>Web拦截器示例配置</b>
+ * <b>Describe:
+ * 1、Web项目参考此拦截器配置对象，实现拦截器注入到Spring上下文，完成拦截器功能</b>
  *
  * <b>Author: tanlin [2020/3/10 15:45]</b>
  * <b>Copyright:</b> Copyright 2008-2026 http://www.jinvovo.com Technology Co., Ltd. All rights reserved.

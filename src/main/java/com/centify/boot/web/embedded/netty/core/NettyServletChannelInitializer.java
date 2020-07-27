@@ -6,14 +6,17 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 
 /**
  * <pre>
- * <b>TODO</b>
- * <b>Describe:TODO</b>
+ * <b>Netty 管道处理初始化工厂对象</b>
+ * <b>Describe:
+ * 1、默认提供Netty处理器链</b>
  *
  * <b>Author: tanlin [2020/7/6 11:18]</b>
  * <b>Copyright:</b> Copyright 2008-2026 http://www.jinvovo.com Technology Co., Ltd. All rights reserved.

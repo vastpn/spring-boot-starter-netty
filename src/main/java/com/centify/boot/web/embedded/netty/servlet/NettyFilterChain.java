@@ -10,8 +10,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * <pre>
- * <b>TODO</b>
- * <b>Describe:TODO</b>
+ * <b>Servlet过滤器链</b>
+ * <b>Describe:执行Servlet过滤器集合</b>
  *
  * <b>Author: tanlin [2020/6/16 18:54]</b>
  * <b>Copyright:</b> Copyright 2008-2026 http://www.jinvovo.com Technology Co., Ltd. All rights reserved.

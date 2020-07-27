@@ -1,6 +1,7 @@
 package com.centify.boot.web.embedded.netty.filter;//package com.centify.boot.web.embedded.netty.filter;
 
-import lombok.extern.log4j.Log4j2;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -9,8 +10,9 @@ import javax.servlet.*;
 
 /**
  * <pre>
- * <b>Netty 管道 过滤器（从）</b>
+ * <b>Servlet 空过滤器示例</b>
  * <b>Describe:
+ * 1、Web项目参照此过滤器，实现项目的过滤器服务
  * </b>
  *
  * <b>Author: tanlin [2020/5/26 11:18]</b>
@@ -21,11 +23,10 @@ import javax.servlet.*;
  *   1.0   2020/5/26 11:18        tanlin            new file.
  * <pre>
  */
-@Log4j2
 @Order(Ordered.LOWEST_PRECEDENCE - 1)
 @Component
 public class HttpGlobFilter implements Filter {
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(HttpGlobFilter.class);
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
@@ -34,11 +35,9 @@ public class HttpGlobFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response,
                          FilterChain chain) {
-//        System.out.println("Filter");
         try {
             chain.doFilter(request, response);
         } catch (Exception ex) {
-            log.error("path changed Error："+ex.getCause().getMessage(),ex);
         }
     }
 

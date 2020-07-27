@@ -2,8 +2,8 @@ package com.centify.boot.web.embedded.netty.constant;
 
 /**
  * <pre>
- * <b>TODO</b>
- * <b>Describe:TODO</b>
+ * <b>Netty静态类</b>
+ * <b>Describe:</b>
  *
  * <b>Author: tanlin [2020/6/9 17:04]</b>
  * <b>Copyright:</b> Copyright 2008-2026 http://www.jinvovo.com Technology Co., Ltd. All rights reserved.

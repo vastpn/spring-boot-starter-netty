@@ -1,8 +1,8 @@
 package com.centify.boot.web.embedded.netty.servlet;
 
-import com.centify.boot.web.embedded.netty.core.NettyServletWebServer;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
+import io.netty.util.ReferenceCountUtil;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.WriteListener;
@@ -10,8 +10,8 @@ import java.io.IOException;
 
 /**
  * <pre>
- * <b>TODO</b>
- * <b>Describe:TODO</b>
+ * <b>Servlet 响应流</b>
+ * <b>Describe:实现Servlet标准输出流管道</b>
  *
  * <b>Author: tanlin [2020/7/20 16:25]</b>
  * <b>Copyright:</b> Copyright 2008-2026 http://www.jinvovo.com Technology Co., Ltd. All rights reserved.

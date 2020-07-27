@@ -56,7 +56,7 @@
 //    }
 //    @GetMapping("/{a}/{b}")
 //    public Integer get(@PathVariable Integer a, @PathVariable Integer b) {
-////        System.out.println("@PathVariable 参数");
+////
 //        return a + b;
 //    }
 //    @GetMapping("/reqparam")

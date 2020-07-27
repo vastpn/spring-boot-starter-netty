@@ -11,8 +11,8 @@ import java.util.EnumSet;
 
 /**
  * <pre>
- * <b>TODO</b>
- * <b>Describe:TODO</b>
+ * <b>Servlet过滤器登记对象</b>
+ * <b>Describe:实现FilterRegistration 标准</b>
  *
  * <b>Author: tanlin [2020/6/16 18:42]</b>
  * <b>Copyright:</b> Copyright 2008-2026 http://www.jinvovo.com Technology Co., Ltd. All rights reserved.
@@ -35,14 +35,6 @@ public class NettyFilterRegistration extends AbstractNettyRegistration implement
         if (!initialised) {
             synchronized (this) {
                 if (!initialised) {
-                    /*filter 必定存在，取消判断*/
-//                    if (null == filter) {
-//                        try {
-//                            filter = (Filter) Class.forName(getClassName()).newInstance();
-//                        } catch (Exception e) {
-//                            return null;
-//                        }
-//                    }
                     try {
                         filter.init(this);
                     } catch (ServletException e) {

@@ -16,8 +16,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * <pre>
- * <b>TODO</b>
- * <b>Describe:TODO</b>
+ * <b>抽象ServletRegistration</b>
+ * <b>Describe:
+ * 1、提供Servlet 注入容器操作
+ * 2、提供Filter 注入容器操作
+ * 3、提供Intercept 注入容器操作</b>
  *
  * <b>Author: tanlin [2020/6/16 16:46]</b>
  * <b>Copyright:</b> Copyright 2008-2026 http://www.jinvovo.com Technology Co., Ltd. All rights reserved.

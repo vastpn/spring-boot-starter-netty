@@ -14,6 +14,8 @@ import io.netty.channel.socket.nio.NioChannelOption;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import io.netty.util.ReferenceCountUtil;
+import io.netty.util.ResourceLeakDetector;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,42 +90,35 @@ public class NettyServletWebServer implements WebServer {
                     .childOption(NioChannelOption.SO_SNDBUF, 16*1024)
                     /*设置ByteBuf重用缓冲区*/
                     .childOption(NioChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
-                    .handler(new LoggingHandler(LogLevel.DEBUG))
                     .childHandler(new NettyServletChannelInitializer());
 
             /**绑定端口，并打印端口信息*/
             ChannelFuture channelFuture = bootstrap.bind(address).syncUninterruptibly().addListener(future -> {
                 StringBuilder logBanner = new StringBuilder();
-                logBanner.append("\n\n")
-                        .append("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n")
-                        .append("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n")
-                        .append("* *                                                                               * *\n")
-                        .append("                     Netty Http Server started on port {}.                     \n")
-                        .append("* *                                                                               * *\n")
-                        .append("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n")
-                        .append("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-                LOGGER.info(logBanner.toString(), address.getPort());
+                logBanner.append("[Container] 容器启动成功！")
+                .append("服务端IP: ").append(address.getAddress().getHostAddress())
+                .append("监听端口：").append(address.getPort());
+                LOGGER.info(logBanner.toString());
             });
             /**通过引入监听器对象监听future状态，当future任务执行完成后会调用-》{}内的方法*/
             channelFuture.channel().closeFuture().addListener(future -> {
-                LOGGER.info("Netty Http服务停止开始!");
+                LOGGER.info("[Container] Netty Http服务停止开始!");
                 /**优雅关闭*/
                 acceptGroup.shutdownGracefully();
                 workerGroup.shutdownGracefully();
-                LOGGER.info("Netty Http服务停止完成!");
+                LOGGER.info("[Container] Netty Http服务停止完成!");
             });
         } catch (Exception e) {
-            LOGGER.error("Netty Start Error " ,e);
+            LOGGER.error("[Container] 容器启动异常，开始释放资源 " ,e);
             acceptGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
-            LOGGER.error("Netty Start Error，资源释放完成！");
+            LOGGER.error("[Container] Netty Start Error，资源释放完成！");
+            System.exit(0);
         }
-
-        LOGGER.info(" started on port: " + getPort());
     }
 
     private void initWorkerGroup() {
-        LOGGER.info("System workerGroup {} ",epollFlag);
+        LOGGER.info("[Container] workerGroup线程池Epoll类型：{} ",epollFlag);
 //        if (epollFlag){
 //            workerGroup = new EpollEventLoopGroup(Runtime.getRuntime().availableProcessors() * 2,
 //                    new DefaultThreadFactory("workerGroup"));
@@ -136,7 +131,7 @@ public class NettyServletWebServer implements WebServer {
     }
 
     private void initAcceptGroup() {
-        LOGGER.info("System acceptGroup {} ",epollFlag);
+        LOGGER.info("[Container] acceptGroup线程池Epoll类型：{} ",epollFlag);
 //        if (epollFlag){
 //            acceptGroup = new EpollEventLoopGroup(1,
 //                    new DefaultThreadFactory("acceptGroup"));
@@ -153,7 +148,7 @@ public class NettyServletWebServer implements WebServer {
      */
     @Override
     public void stop() throws WebServerException {
-        LOGGER.info("Embedded Netty Servlet Container shuting down.");
+        LOGGER.info("[Container] 关闭容器，开始释放资源.");
         try {
             if (null != acceptGroup) {
                 acceptGroup.shutdownGracefully().await();
@@ -162,8 +157,10 @@ public class NettyServletWebServer implements WebServer {
                 workerGroup.shutdownGracefully().await();
             }
         } catch (InterruptedException e) {
+            LOGGER.error("[Container] 关闭容器异常.",e);
             throw new WebServerException("Container stop interrupted", e);
         }
+        LOGGER.info("[Container] 关闭容器完成.");
     }
 
     @Override

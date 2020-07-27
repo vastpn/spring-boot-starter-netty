@@ -11,8 +11,8 @@ import java.util.List;
 
 /**
  * <pre>
- * <b>TODO</b>
- * <b>Describe:TODO</b>
+ * <b>异步ServletContext</b>
+ * <b>Describe:当前框架暂未验证及使用异步Servlet</b>
  *
  * <b>Author: tanlin [2020/6/16 19:00]</b>
  * <b>Copyright:</b> Copyright 2008-2026 http://www.jinvovo.com Technology Co., Ltd. All rights reserved.

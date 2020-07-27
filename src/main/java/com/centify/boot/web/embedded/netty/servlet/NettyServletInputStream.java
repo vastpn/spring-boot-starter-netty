@@ -1,22 +1,17 @@
 package com.centify.boot.web.embedded.netty.servlet;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufInputStream;
-import io.netty.buffer.Unpooled;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.HttpRequest;
 import io.netty.util.ReferenceCountUtil;
 
 import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;
 import java.io.IOException;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * <pre>
- * <b>TODO</b>
- * <b>Describe:TODO</b>
+ * <b>Servlet 请求流对象</b>
+ * <b>Describe:采用Netty ByteBuf 高性能内存缓冲池，实现0拷贝</b>
  *
  * <b>Author: tanlin [2020/7/13 15:39]</b>
  * <b>Copyright:</b> Copyright 2008-2026 http://www.jinvovo.com Technology Co., Ltd. All rights reserved.
@@ -34,11 +29,7 @@ public class NettyServletInputStream extends ServletInputStream {
     public NettyServletInputStream() {
     }
 
-    public NettyServletInputStream(ByteBuf source) {
-        wrap(source);
-    }
     public void wrap(ByteBuf source) {
-//        ReferenceCountUtil.release(this.source);
         this.closed.set(false);
         this.source = source;
         this.contentLength = source.capacity();
@@ -128,7 +119,6 @@ public class NettyServletInputStream extends ServletInputStream {
         byteBuf.readBytes(bytes, off, readableBytes);
         //返回实际读取的字节数
         int size  = readableBytes - byteBuf.readableBytes();
-        ReferenceCountUtil.release(byteBuf);
         return size;
     }
 

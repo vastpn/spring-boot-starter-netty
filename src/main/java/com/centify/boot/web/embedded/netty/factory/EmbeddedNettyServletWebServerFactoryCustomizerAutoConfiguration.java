@@ -17,8 +17,9 @@ import org.springframework.core.env.Environment;
 
 /**
  * <pre>
- * <b>TODO</b>
- * <b>Describe:TODO</b>
+ * <b>Netty Web Server 容器工厂</b>
+ * <b>Describe:
+ * 1、提供Netty  Http Server 容器</b>
  *
  * <b>Author: tanlin [2020/7/6 9:43]</b>
  * <b>Copyright:</b> Copyright 2008-2026 http://www.jinvovo.com Technology Co., Ltd. All rights reserved.
@@ -43,7 +44,7 @@ public class EmbeddedNettyServletWebServerFactoryCustomizerAutoConfiguration {
         @Bean
         public NettyServletWebServerFactory embeddedNettyFactory(Environment environment,
                                                                  ServerProperties serverProperties) {
-            LOGGER.info("[Container] Embedded Netty Servlet WebServer :{} ,{},context = {}", environment, serverProperties);
+            LOGGER.info("[Container] 启用 Netty Servlet Web Server 容器 :{} ,{},context = {}", environment, serverProperties);
             return new NettyServletWebServerFactory(environment, serverProperties);
         }
     }
