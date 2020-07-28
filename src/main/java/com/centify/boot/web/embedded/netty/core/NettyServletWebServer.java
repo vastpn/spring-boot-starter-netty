@@ -7,6 +7,7 @@ import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.WriteBufferWaterMark;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -78,6 +79,7 @@ public class NettyServletWebServer implements WebServer {
                     .option(ChannelOption.SO_RCVBUF, 4*1024)
                     /*ByteBuf重用缓冲区*/
                     .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+                    .childOption(NioChannelOption.WRITE_BUFFER_WATER_MARK,new WriteBufferWaterMark(32*1024,64*1024))
                     /*响应时间有高要求的场景 禁用nagle 算法*/
                     .childOption(NioChannelOption.TCP_NODELAY, Boolean.TRUE)
                     /*是否允许端口占用*/

@@ -74,8 +74,15 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<NettyH
                 /**设置默认头信息的的MIME类型*/
                 fullHttpResponse.headers().set(HttpHeaderNames.CONTENT_TYPE, MediaType.APPLICATION_JSON_UTF8_VALUE);
             }
-            /**返回客户端并监听关闭*/
-            ctx.writeAndFlush(fullHttpResponse).addListener(ChannelFutureListener.CLOSE);
+
+            if (ctx.channel().isWritable()){
+                /**返回客户端并监听关闭*/
+                ctx.writeAndFlush(fullHttpResponse).addListener(ChannelFutureListener.CLOSE);
+            }else {
+                //
+            }
+
+
         }catch (Exception ex){
             LOGGER.error(this.getClass().getName()+" 处理异常",ex);
         }finally {
