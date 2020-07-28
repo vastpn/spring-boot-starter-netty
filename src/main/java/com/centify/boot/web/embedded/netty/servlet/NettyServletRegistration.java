@@ -21,31 +21,23 @@ import java.util.Set;
  * <pre>
  */
 public class NettyServletRegistration extends AbstractNettyRegistration implements ServletRegistration.Dynamic {
-    private volatile boolean initialised;
     private Servlet servlet;
 
-    public NettyServletRegistration(NettyServletContext context, String servletName, String className, Servlet servlet) {
+    public NettyServletRegistration(NettyServletContext context, String servletName, String className, Servlet servlet) throws ClassNotFoundException, IllegalAccessException, InstantiationException, ServletException {
         super(servletName, className, context);
-        this.servlet = servlet;
+
+        if(servlet == null){
+            this.servlet = (Servlet) Class.forName(getClassName()).newInstance();
+            this.servlet.init(this);
+        }else {
+            this.servlet = servlet;
+            this.servlet.init(this);
+        }
     }
 
     public Servlet getServlet() throws ServletException {
-        if (!initialised) {
-            synchronized (this) {
-                if (!initialised) {
-                    if (null == servlet) {
-                        try {
-                            servlet = (Servlet) Class.forName(getClassName()).newInstance();
-                        } catch (Exception e) {
-                            throw new ServletException(e);
-                        }
-                    }
-                    servlet.init(this);
-                    initialised = true;
-                }
-            }
-        }
-        return servlet;
+
+        return this.servlet;
     }
 
     @Override

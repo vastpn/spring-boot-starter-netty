@@ -36,6 +36,7 @@ import java.security.Principal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -487,15 +488,15 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         return NettyServletWebServerFactory.serverAddress.getPort();
     }
 
+    private final AtomicBoolean readerFlag = new AtomicBoolean(Boolean.FALSE);
+
     @Override
     public BufferedReader getReader() throws UnsupportedEncodingException {
         if(reader == null){
-            synchronized (this){
-                if(reader == null){
-                    reader = StringUtils.isEmpty(this.characterEncoding)?
-                            new BufferedReader(new InputStreamReader(getInputStream())):
-                            new BufferedReader(new InputStreamReader(getInputStream(),this.characterEncoding));
-                }
+            if(readerFlag.compareAndSet(Boolean.FALSE,Boolean.TRUE)){
+                reader = StringUtils.isEmpty(this.characterEncoding)?
+                        new BufferedReader(new InputStreamReader(getInputStream())):
+                        new BufferedReader(new InputStreamReader(getInputStream(),this.characterEncoding));
             }
         }
         return reader;

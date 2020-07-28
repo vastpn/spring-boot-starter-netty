@@ -462,11 +462,13 @@ public class NettyServletContext implements ServletContext {
         throw new UnsupportedOperationException();
     }
 
+    @SneakyThrows
     @Override
     public ServletRegistration.Dynamic addServlet(String servletName, String className) {
         return addServlet(servletName, className, null);
     }
 
+    @SneakyThrows
     @Override
     public ServletRegistration.Dynamic addServlet(String servletName, Servlet servlet) {
         return addServlet(servletName, servlet.getClass().getName(), servlet);
@@ -477,7 +479,7 @@ public class NettyServletContext implements ServletContext {
         return addServlet(servletName, servletClass.getName());
     }
 
-    private ServletRegistration.Dynamic addServlet(String servletName, String className, Servlet servlet) {
+    private ServletRegistration.Dynamic addServlet(String servletName, String className, Servlet servlet) throws ClassNotFoundException, InstantiationException, ServletException, IllegalAccessException {
         NettyServletRegistration servletRegistration = new NettyServletRegistration(this, servletName, className, servlet);
         servlets.put(servletName, servletRegistration);
         return servletRegistration;

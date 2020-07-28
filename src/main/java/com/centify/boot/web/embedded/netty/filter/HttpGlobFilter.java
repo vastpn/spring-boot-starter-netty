@@ -43,7 +43,6 @@ public class HttpGlobFilter implements Filter {
 
     @Override
     public void destroy() {
-
     }
 
 }
