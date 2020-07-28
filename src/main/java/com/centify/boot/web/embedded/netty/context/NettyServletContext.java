@@ -509,11 +509,13 @@ public class NettyServletContext implements ServletContext {
         return Collections.emptyMap();
     }
 
+    @SneakyThrows
     @Override
     public FilterRegistration.Dynamic addFilter(String filterName, String className) {
         return addFilter(filterName, className, null);
     }
 
+    @SneakyThrows
     @Override
     public FilterRegistration.Dynamic addFilter(String filterName, Filter filter) {
         return addFilter(filterName, filter.getClass().getName(), filter);
@@ -524,7 +526,7 @@ public class NettyServletContext implements ServletContext {
         return addFilter(filterName, filterClass.getName());
     }
 
-    private javax.servlet.FilterRegistration.Dynamic addFilter(String filterName, String className, Filter filter) {
+    private javax.servlet.FilterRegistration.Dynamic addFilter(String filterName, String className, Filter filter) throws ServletException {
         NettyFilterRegistration filterRegistration = new NettyFilterRegistration(this, filterName, className, filter);
         filters.put(filterName, filterRegistration);
         return filterRegistration;

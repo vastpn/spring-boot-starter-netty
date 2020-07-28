@@ -40,23 +40,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <pre>
  */
 public class NettyFilterRegistration extends AbstractNettyRegistration implements FilterRegistration.Dynamic {
-    private final AtomicBoolean initFlag=new AtomicBoolean(Boolean.FALSE);
-
     private Filter filter;
 
-    public NettyFilterRegistration(NettyServletContext context, String filterName, String className, Filter filter) {
+    public NettyFilterRegistration(NettyServletContext context, String filterName, String className, Filter filter) throws ServletException {
         super(filterName, className, context);
         this.filter = filter;
+        this.filter.init(this);
     }
 
     public Filter getFilter()  {
-        if (initFlag.compareAndSet(Boolean.FALSE,Boolean.TRUE)){
-            try {
-                filter.init(this);
-            } catch (ServletException e) {
-                return null;
-            }
-        }
         return filter;
     }
 

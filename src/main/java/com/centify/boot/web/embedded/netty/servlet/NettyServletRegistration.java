@@ -28,11 +28,10 @@ public class NettyServletRegistration extends AbstractNettyRegistration implemen
 
         if(servlet == null){
             this.servlet = (Servlet) Class.forName(getClassName()).newInstance();
-            this.servlet.init(this);
         }else {
             this.servlet = servlet;
-            this.servlet.init(this);
         }
+        this.servlet.init(this);
     }
 
     public Servlet getServlet() throws ServletException {
