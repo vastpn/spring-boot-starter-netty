@@ -13,10 +13,7 @@ import io.netty.handler.codec.http.multipart.MemoryAttribute;
 import io.netty.util.CharsetUtil;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
-import org.springframework.mock.web.MockAsyncContext;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.util.Assert;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -105,13 +102,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     private boolean secure = false;
 
-    private boolean asyncStarted = false;
-
-    private boolean asyncSupported = false;
-
-    @Nullable
-    private MockAsyncContext asyncContext;
-
     private DispatcherType dispatcherType = DispatcherType.REQUEST;
 
     private String contextPath = "";
@@ -119,8 +109,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     private final Set<String> userRoles = new HashSet<>(4);
 
     private String servletPath = "";
-
-    private HttpSession session;
 
     private boolean requestedSessionIdValid = true;
 
@@ -182,10 +170,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
                 });
     }
 
-    // ---------------------------------------------------------------------
-    // Lifecycle methods
-    // ---------------------------------------------------------------------
-
     /**
      * Return the ServletContext that this request is associated with. (Not
      * available in the standard HttpServletRequest interface for some reason.)
@@ -209,13 +193,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         this.active = false;
     }
 
-    /**
-     * Invalidate this request, clearing its state.
-     */
-    public void invalidate() {
-        close();
-        clearAttributes();
-    }
 
     /**
      * Check whether this request is still active (that is, not completed yet),
@@ -621,53 +598,33 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     @Override
     public AsyncContext startAsync(ServletRequest request, @Nullable ServletResponse response) {
-        Assert.state(this.asyncSupported, "Async not supported");
-        this.asyncStarted = true;
-        this.asyncContext = new MockAsyncContext(request, response);
-        return this.asyncContext;
-    }
-
-    public void setAsyncStarted(boolean asyncStarted) {
-        this.asyncStarted = asyncStarted;
+        //TODO 未实现异步服务
+        return null;
     }
 
     @Override
     public boolean isAsyncStarted() {
-        return this.asyncStarted;
-    }
-
-    public void setAsyncSupported(boolean asyncSupported) {
-        this.asyncSupported = asyncSupported;
+        //TODO 未实现异步服务
+        return false;
     }
 
     @Override
     public boolean isAsyncSupported() {
-        return this.asyncSupported;
-    }
-
-    public void setAsyncContext(@Nullable MockAsyncContext asyncContext) {
-        this.asyncContext = asyncContext;
+        //TODO 未实现异步服务
+        return false;
     }
 
     @Override
     @Nullable
     public AsyncContext getAsyncContext() {
-        return this.asyncContext;
-    }
-
-    public void setDispatcherType(DispatcherType dispatcherType) {
-        this.dispatcherType = dispatcherType;
+        //TODO 未实现异步服务
+        return null;
     }
 
     @Override
     public DispatcherType getDispatcherType() {
         return this.dispatcherType;
     }
-
-
-    // ---------------------------------------------------------------------
-    // HttpServletRequest interface
-    // ---------------------------------------------------------------------
 
     /**
      * 返回用于保护servlet的认证方案的名称。所有Servlet容器都支持基本，表单和客户端证书身份验证，并且可能还支持摘要身份验证。如果servlet未通过身份验证，null则返回。
@@ -680,13 +637,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     public String getAuthType() {
         //TODO 获取HTTP身份认证类型
         return null;
-    }
-
-
-    private static String encodeCookies(@NonNull Cookie... cookies) {
-        return Arrays.stream(cookies)
-                .map(c -> c.getName() + '=' + (c.getValue() == null ? "" : c.getValue()))
-                .collect(Collectors.joining("; "));
     }
 
     @Override
@@ -844,16 +794,8 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     @Override
     public HttpSession getSession(boolean create) {
-        checkActive();
-        // Reset session if invalidated.
-        if (this.session instanceof MockHttpSession && ((MockHttpSession) this.session).isInvalid()) {
-            this.session = null;
-        }
-        // Create new session if necessary.
-        if (this.session == null && create) {
-            this.session = new MockHttpSession(NettyServletWebServerFactory.servletContext);
-        }
-        return this.session;
+        //TODO 未实现Session
+        return null;
     }
 
     @Override
@@ -862,20 +804,11 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         return getSession(true);
     }
 
-    /**
-     * The implementation of this (Servlet 3.1+) method calls
-     * {@link MockHttpSession#changeSessionId()} if the session is a mock session.
-     * Otherwise it simply returns the current session id.
-     * @since 4.0.3
-     */
+    @Override
     public String changeSessionId() {
-        Assert.isTrue(this.session != null, "The request does not have a session");
-        if (this.session instanceof MockHttpSession) {
-            return ((MockHttpSession) this.session).changeSessionId();
-        }
-        return this.session.getId();
+        //TODO 未实现Session
+        return null;
     }
-
 
     @Override
     public boolean isRequestedSessionIdValid() {
