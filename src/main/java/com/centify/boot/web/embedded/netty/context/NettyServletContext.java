@@ -13,7 +13,6 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.MediaType;
 import org.springframework.http.MediaTypeFactory;
 import org.springframework.lang.Nullable;
-import org.springframework.mock.web.MockSessionCookieConfig;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.MimeType;
@@ -35,7 +34,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * <pre>
- * <b>实现MockServletContext</b>
+ * <b>实现ServletContext</b>
  * <b>Describe:
  * 1、只需要有ServletContext空对象，否则Springboot启动时抛NPE
  * 2、SpringBoot-> Netty-->重新赋值addServlet、addFilter</b>
@@ -57,7 +56,6 @@ public class NettyServletContext implements ServletContext {
 
     private static final String TEMP_DIR_SYSTEM_PROPERTY = "java.io.tmpdir";
 
-    private static final Set<SessionTrackingMode> DEFAULT_SESSION_TRACKING_MODES = new LinkedHashSet<>(4);
 
     private final ResourceLoader resourceLoader;
 
@@ -72,8 +70,6 @@ public class NettyServletContext implements ServletContext {
     private int effectiveMajorVersion = 3;
 
     private int effectiveMinorVersion = 1;
-
-    private final SessionCookieConfig sessionCookieConfig = new MockSessionCookieConfig();
 
     private String defaultServletName = COMMON_DEFAULT_SERVLET_NAME;
 
@@ -96,14 +92,8 @@ public class NettyServletContext implements ServletContext {
     @Nullable
     private Set<SessionTrackingMode> sessionTrackingModes;
 
-    static {
-        DEFAULT_SESSION_TRACKING_MODES.add(SessionTrackingMode.COOKIE);
-        DEFAULT_SESSION_TRACKING_MODES.add(SessionTrackingMode.URL);
-        DEFAULT_SESSION_TRACKING_MODES.add(SessionTrackingMode.SSL);
-    }
-
     /**
-     * Create a new {@code MockServletContext}, using no base path and a
+     * Create a new {@code NettyServletContext}, using no base path and a
      * {@link DefaultResourceLoader} (i.e. the classpath root as WAR root).
      * @see org.springframework.core.io.DefaultResourceLoader
      */
@@ -112,7 +102,7 @@ public class NettyServletContext implements ServletContext {
     }
 
     /**
-     * Create a new {@code MockServletContext}, using a {@link DefaultResourceLoader}.
+     * Create a new {@code NettyServletContext}, using a {@link DefaultResourceLoader}.
      * @param resourceBasePath the root directory of the WAR (should not end with a slash)
      * @see org.springframework.core.io.DefaultResourceLoader
      */
@@ -121,7 +111,7 @@ public class NettyServletContext implements ServletContext {
     }
 
     /**
-     * Create a new {@code MockServletContext}, using the specified {@link ResourceLoader}
+     * Create a new {@code NettyServletContext}, using the specified {@link ResourceLoader}
      * and no base path.
      * @param resourceLoader the ResourceLoader to use (or null for the default)
      */
@@ -130,7 +120,7 @@ public class NettyServletContext implements ServletContext {
     }
 
     /**
-     * Create a new {@code MockServletContext} using the supplied resource base
+     * Create a new {@code NettyServletContext} using the supplied resource base
      * path and resource loader.
      * <p>Registers a for the Servlet named
      * {@literal 'default'}.
@@ -153,7 +143,7 @@ public class NettyServletContext implements ServletContext {
     }
     /**
      * Build a full resource location for the given path, prepending the resource
-     * base path of this {@code MockServletContext}.
+     * base path of this {@code ServletContext}.
      * @param path the path as specified
      * @return the full resource path
      */
@@ -443,18 +433,20 @@ public class NettyServletContext implements ServletContext {
 
     @Override
     public Set<SessionTrackingMode> getDefaultSessionTrackingModes() {
-        return DEFAULT_SESSION_TRACKING_MODES;
+        //TODO 未实现Session
+        return null;
     }
 
     @Override
     public Set<SessionTrackingMode> getEffectiveSessionTrackingModes() {
-        return (this.sessionTrackingModes != null ?
-                Collections.unmodifiableSet(this.sessionTrackingModes) : DEFAULT_SESSION_TRACKING_MODES);
+        //TODO 未实现Session
+        return null;
     }
 
     @Override
     public SessionCookieConfig getSessionCookieConfig() {
-        return this.sessionCookieConfig;
+        //TODO 未实现Session
+        return null;
     }
 
     @Override

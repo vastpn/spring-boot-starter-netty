@@ -1,7 +1,6 @@
 package com.centify.boot.web.embedded.netty.core;
 
-import com.centify.boot.web.embedded.netty.context.NettyServletContext;
-import com.centify.boot.web.embedded.netty.factory.NettyServletWebServerFactory;
+import com.centify.boot.web.embedded.netty.config.NettyEmbeddedProperties;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;
@@ -9,14 +8,9 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.WriteBufferWaterMark;
 import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioChannelOption;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
-import io.netty.util.ReferenceCountUtil;
-import io.netty.util.ResourceLeakDetector;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +38,7 @@ public class NettyServletWebServer implements WebServer {
 
     /**监听端口地址*/
     private final InetSocketAddress address;
+    private final NettyEmbeddedProperties nettyCustom;
 
     /**Netty事件接收线程池组*/
     private EventLoopGroup acceptGroup;
@@ -53,8 +48,9 @@ public class NettyServletWebServer implements WebServer {
 
     private Boolean epollFlag;
 
-    public NettyServletWebServer(InetSocketAddress address) {
+    public NettyServletWebServer(InetSocketAddress address, NettyEmbeddedProperties nettyCustom) {
         this.address = address;
+        this.nettyCustom = nettyCustom;
     }
 
     @Override
@@ -73,26 +69,29 @@ public class NettyServletWebServer implements WebServer {
                     .channel(NioServerSocketChannel.class)
                     .localAddress(address.getPort())
                     /*是否允许端口占用*/
-                    .option(ChannelOption.SO_REUSEADDR, Boolean.TRUE)
+                    .option(ChannelOption.SO_REUSEADDR, nettyCustom.getOptionSoReuseaddr())
                     /*设置可处理队列数量*/
-                    .option(ChannelOption.SO_BACKLOG, 128)
-                    .option(ChannelOption.SO_RCVBUF, 4*1024)
+                    .option(ChannelOption.SO_BACKLOG, nettyCustom.getOptionSoBacklog())
+                    .option(ChannelOption.SO_RCVBUF, nettyCustom.getOptionSoRcvbuf())
                     /*ByteBuf重用缓冲区*/
                     .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
-                    .childOption(NioChannelOption.WRITE_BUFFER_WATER_MARK,new WriteBufferWaterMark(32*1024,64*1024))
+                    .childOption(NioChannelOption.WRITE_BUFFER_WATER_MARK,
+                            new WriteBufferWaterMark(
+                                    nettyCustom.getChildOptionWriteBufferLowWaterMark(),
+                                    nettyCustom.getChildOptionWriteBufferHighWaterMark()))
                     /*响应时间有高要求的场景 禁用nagle 算法*/
-                    .childOption(NioChannelOption.TCP_NODELAY, Boolean.TRUE)
+                    .childOption(NioChannelOption.TCP_NODELAY, nettyCustom.getChildOptiontcpNodelay())
                     /*是否允许端口占用*/
-                    .childOption(NioChannelOption.SO_REUSEADDR, Boolean.TRUE)
+                    .childOption(NioChannelOption.SO_REUSEADDR, nettyCustom.getChildOptionsoReuseaddr())
 //                    /*是否设置长连接*/
-//                    .childOption(NioChannelOption.SO_KEEPALIVE, Boolean.TRUE)
+                    .childOption(NioChannelOption.SO_KEEPALIVE, nettyCustom.getChildOptionsoKeepalive())
                     /*设置接收数据大小 设置为4K*/
-                    .childOption(NioChannelOption.SO_RCVBUF, 4*1024)
+                    .childOption(NioChannelOption.SO_RCVBUF, nettyCustom.getChildOptionsoRcvbuf())
                     /*设置发送数据大小 设置为16K*/
-                    .childOption(NioChannelOption.SO_SNDBUF, 16*1024)
+                    .childOption(NioChannelOption.SO_SNDBUF, nettyCustom.getChildOptionsoSndbuf())
                     /*设置ByteBuf重用缓冲区*/
                     .childOption(NioChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
-                    .childHandler(new NettyServletChannelInitializer());
+                    .childHandler(new NettyServletChannelInitializer(nettyCustom));
 
             /**绑定端口，并打印端口信息*/
             ChannelFuture channelFuture = bootstrap.bind(address).syncUninterruptibly().addListener(future -> {
@@ -127,8 +126,8 @@ public class NettyServletWebServer implements WebServer {
 //
 //        }else{
 //        workerGroup = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() * 2,new DefaultThreadFactory("workerGroup"));
-        workerGroup =new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() * 2,
-                new ForkJoinPool(Runtime.getRuntime().availableProcessors() * 2));
+        workerGroup =new NioEventLoopGroup(nettyCustom.getWorkerGroupThread(),
+                new ForkJoinPool(nettyCustom.getWorkerGroupThread()));
 //        }
     }
 
@@ -138,8 +137,9 @@ public class NettyServletWebServer implements WebServer {
 //            acceptGroup = new EpollEventLoopGroup(1,
 //                    new DefaultThreadFactory("acceptGroup"));
 //        }else{
-        acceptGroup = new NioEventLoopGroup(1,
-                new DefaultThreadFactory("acceptGroup"));
+        acceptGroup = new NioEventLoopGroup(
+                nettyCustom.getAcceptGroupThread(),
+                new DefaultThreadFactory(nettyCustom.getAcceptGroupPoolName()));
 //        }
     }
 

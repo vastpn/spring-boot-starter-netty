@@ -1,7 +1,6 @@
 package com.centify.boot.web.embedded.netty.servlet;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.util.ReferenceCountUtil;
 
 import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;

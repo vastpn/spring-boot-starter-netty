@@ -1,5 +1,6 @@
 package com.centify.boot.web.embedded.netty.handler;
 
+import com.centify.boot.web.embedded.netty.constant.NettyConstant;
 import com.centify.boot.web.embedded.netty.factory.NettyServletWebServerFactory;
 import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletRequest;
 import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletResponse;
@@ -15,6 +16,8 @@ import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
+
+import java.net.InetSocketAddress;
 
 /**
  * <pre>
@@ -33,7 +36,7 @@ import org.springframework.http.MediaType;
  * <pre>
  */
 @ChannelHandler.Sharable
-public class DispatcherServletHandler extends SimpleChannelInboundHandler<NettyHttpServletRequest> {
+public class DispatcherServletHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
     private static final Logger LOGGER = LoggerFactory.getLogger(DispatcherServletHandler.class);
     private static class SingletonHolder {
 
@@ -44,45 +47,55 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<NettyH
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, NettyHttpServletRequest servletRequest) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
+
+        /**1、验证请求解码状态，父类已释放资源*/
+        if(!fullHttpRequest.decoderResult().isSuccess()){
+            return ;
+        }
+
+        /**2、过滤FAVICON请求，父类已释放资源*/
+        if(NettyConstant.HTTP_REQUEST_FAVICON.equalsIgnoreCase(fullHttpRequest.uri())){
+            return ;
+        }
+
+        /**3、FullHTTPRequest 转换为ServletRequest*/
+        NettyHttpServletRequest servletRequest = new NettyHttpServletRequest(
+                fullHttpRequest,(InetSocketAddress)ctx.channel().remoteAddress());
+
+        /**4、分配IO堆外内存，实现Zero拷贝*/
         ByteBuf result = ctx.alloc().ioBuffer();
         try{
-            /*Servlet Request、Response*/
+            /**5、初始化ServletRequestStream、ServletOutputStream、ServletResponse、DispacherServlet对象*/
             NettyServletOutputStream outputStream = new NettyServletOutputStream(result);
             NettyHttpServletResponse servletResponse = new NettyHttpServletResponse(outputStream);
             NettyRequestDispatcher dispatcherServlet =
                     (NettyRequestDispatcher) NettyServletWebServerFactory.servletContext
                             .getRequestDispatcher(servletRequest.getRequestURI());
 
-            /*Do Servlet service(Request,Response)*/
+            /**6、执行Servlet.dispacher分发(包含Filter、Interceptor、Service流程)*/
             dispatcherServlet.dispatch(servletRequest, servletResponse);
             if (!servletRequest.isActive()){
                 return ;
             }
 
-            /*Create Default HttpResponse*/
+            /**7、获取ServletOutputStream流并封装FullHTTPResponse对象*/
             FullHttpResponse fullHttpResponse = new DefaultFullHttpResponse(
                     HttpVersion.HTTP_1_1,
                     HttpResponseStatus.valueOf(servletResponse.getStatus()),
                     result);
 
+            /**8、设置Response头信息*/
             fullHttpResponse.headers().setAll(servletResponse.getHeaders());
-            /**设置要返回的内容长度*/
             fullHttpResponse.headers().set(HttpHeaderNames.CONTENT_LENGTH, result.readableBytes());
-
             if(fullHttpResponse.headers().get(HttpHeaderNames.CONTENT_TYPE) ==null){
-                /**设置默认头信息的的MIME类型*/
                 fullHttpResponse.headers().set(HttpHeaderNames.CONTENT_TYPE, MediaType.APPLICATION_JSON_UTF8_VALUE);
             }
 
+            /**10、返回客户端并监听关闭，写入ByteBuf失败，不再重复写入，生产建议开启判断，防止IO缓存OOM*/
             if (ctx.channel().isWritable()){
-                /**返回客户端并监听关闭*/
                 ctx.writeAndFlush(fullHttpResponse).addListener(ChannelFutureListener.CLOSE);
-            }else {
-                //
             }
-
-
         }catch (Exception ex){
             LOGGER.error(this.getClass().getName()+" 处理异常",ex);
         }finally {
@@ -93,12 +106,10 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<NettyH
                 ReferenceCountUtil.release(result);
             }
         }
-
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         ctx.close();
-//        LOGGER.error(this.getClass().getName()+" exceptionCaught",cause);
     }
 }

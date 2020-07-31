@@ -8,7 +8,6 @@ import javax.servlet.FilterRegistration;
 import javax.servlet.ServletException;
 import java.util.Collection;
 import java.util.EnumSet;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * <pre>

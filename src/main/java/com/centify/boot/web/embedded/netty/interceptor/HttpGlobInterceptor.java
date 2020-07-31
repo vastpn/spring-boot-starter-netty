@@ -1,6 +1,5 @@
 package com.centify.boot.web.embedded.netty.interceptor;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
@@ -23,7 +22,6 @@ import javax.servlet.http.HttpServletResponse;
  *   1.0   2020/6/3 18:51        tanlin            new file.
  * <pre>
  */
-@Slf4j
 @Component
 public class HttpGlobInterceptor implements HandlerInterceptor {
     @Override

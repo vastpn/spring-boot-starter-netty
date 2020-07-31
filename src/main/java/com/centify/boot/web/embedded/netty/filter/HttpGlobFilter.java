@@ -1,4 +1,4 @@
-package com.centify.boot.web.embedded.netty.filter;//package com.centify.boot.web.embedded.netty.filter;
+package com.centify.boot.web.embedded.netty.filter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

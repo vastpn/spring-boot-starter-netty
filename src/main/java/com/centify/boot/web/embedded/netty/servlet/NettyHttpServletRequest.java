@@ -520,11 +520,11 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     /**
      * Return the first preferred {@linkplain Locale locale} configured
-     * in this mock request.
+     * in this  request.
      * <p>If no locales have been explicitly configured, the default,
-     * preferred {@link Locale} for the <em>server</em> mocked by this
+     * preferred {@link Locale} for the <em>server</em>  by this
      * request is {@link Locale#ENGLISH}.
-     * <p>In contrast to the Servlet specification, this mock implementation
+     * <p>In contrast to the Servlet specification, this  implementation
      * does <strong>not</strong> take into consideration any locales
      * specified via the {@code Accept-Language} header.
      * @see javax.servlet.ServletRequest#getLocale()
@@ -536,11 +536,11 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     /**
      * Return an {@linkplain Enumeration enumeration} of the preferred
-     * {@linkplain Locale locales} configured in this mock request.
+     * {@linkplain Locale locales} configured in this  request.
      * <p>If no locales have been explicitly configured, the default,
-     * preferred {@link Locale} for the <em>server</em> mocked by this
+     * preferred {@link Locale} for the <em>server</em>  by this
      * request is {@link Locale#ENGLISH}.
-     * <p>In contrast to the Servlet specification, this mock implementation
+     * <p>In contrast to the Servlet specification, this  implementation
      * does <strong>not</strong> take into consideration any locales
      * specified via the {@code Accept-Language} header.
      * @see javax.servlet.ServletRequest#getLocales()

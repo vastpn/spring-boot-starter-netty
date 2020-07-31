@@ -1,5 +1,6 @@
 package com.centify.boot.web.embedded.netty.factory;
 
+import com.centify.boot.web.embedded.netty.config.NettyEmbeddedProperties;
 import io.netty.bootstrap.Bootstrap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +34,7 @@ import org.springframework.core.env.Environment;
 @Configuration
 @ConditionalOnWebApplication
 @AutoConfigureOrder(Ordered.HIGHEST_PRECEDENCE)
-@EnableConfigurationProperties(ServerProperties.class)
+@EnableConfigurationProperties({ServerProperties.class, NettyEmbeddedProperties.class})
 public class EmbeddedNettyServletWebServerFactoryCustomizerAutoConfiguration {
 
     @Configuration
@@ -43,9 +44,10 @@ public class EmbeddedNettyServletWebServerFactoryCustomizerAutoConfiguration {
         private static final Logger LOGGER = LoggerFactory.getLogger(NettyHttpWebServerFactoryCustomizerConfiguration.class);
         @Bean
         public NettyServletWebServerFactory embeddedNettyFactory(Environment environment,
-                                                                 ServerProperties serverProperties) {
-            LOGGER.info("[Container] 启用 Netty Servlet Web Server 容器 :{} ,{},context = {}", environment, serverProperties);
-            return new NettyServletWebServerFactory(environment, serverProperties);
+                                                                 ServerProperties serverProperties,
+                                                                 NettyEmbeddedProperties nettyEmbeddedProperties) {
+            LOGGER.info("[Container] 启用 Netty Servlet Web Server 容器 :{} ,netty ={}", environment, nettyEmbeddedProperties);
+            return new NettyServletWebServerFactory(environment, serverProperties,nettyEmbeddedProperties);
         }
     }
 }

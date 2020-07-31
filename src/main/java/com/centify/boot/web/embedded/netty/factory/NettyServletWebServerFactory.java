@@ -1,5 +1,6 @@
 package com.centify.boot.web.embedded.netty.factory;
 
+import com.centify.boot.web.embedded.netty.config.NettyEmbeddedProperties;
 import com.centify.boot.web.embedded.netty.context.NettyServletContext;
 import com.centify.boot.web.embedded.netty.core.NettyServletWebServer;
 import io.netty.bootstrap.Bootstrap;
@@ -33,6 +34,7 @@ import java.net.InetSocketAddress;
  */
 public class NettyServletWebServerFactory extends AbstractServletWebServerFactory implements ResourceLoaderAware {
     private static final Logger LOGGER = LoggerFactory.getLogger(NettyServletWebServerFactory.class);
+    private NettyEmbeddedProperties nettyEmbeddedProperties;
 
     /**
      * 资源加载器
@@ -56,9 +58,10 @@ public class NettyServletWebServerFactory extends AbstractServletWebServerFactor
      */
     private final ServerProperties serverProperties;
 
-    public NettyServletWebServerFactory(Environment environment, ServerProperties serverProperties) {
+    public NettyServletWebServerFactory(Environment environment, ServerProperties serverProperties, NettyEmbeddedProperties nettyEmbeddedProperties) {
         NettyServletWebServerFactory.environment = environment;
         this.serverProperties = serverProperties;
+        this.nettyEmbeddedProperties = nettyEmbeddedProperties;
     }
 
     @Override
@@ -71,7 +74,7 @@ public class NettyServletWebServerFactory extends AbstractServletWebServerFactor
         int port = getPort() > 0 ? getPort() : 8080;
         serverAddress = new InetSocketAddress(port);
         /**初始化容器并返回*/
-        return new NettyServletWebServer(serverAddress);
+        return new NettyServletWebServer(serverAddress,nettyEmbeddedProperties);
     }
     private void logContainer() {
         /**Netty启动环境相关信息*/
