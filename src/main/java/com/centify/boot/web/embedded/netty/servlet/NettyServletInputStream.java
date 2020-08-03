@@ -1,6 +1,7 @@
 package com.centify.boot.web.embedded.netty.servlet;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.util.ReferenceCountUtil;
 
 import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;
@@ -29,6 +30,10 @@ public class NettyServletInputStream extends ServletInputStream {
     }
 
     public void wrap(ByteBuf source) {
+        if(this.source!=null){
+            ReferenceCountUtil.release(this.source);
+        }
+
         this.closed.set(false);
         this.source = source;
         this.contentLength = source.capacity();
@@ -93,7 +98,8 @@ public class NettyServletInputStream extends ServletInputStream {
 
     @Override
     public void close() throws IOException {
-        this.source = null;
+        ReferenceCountUtil.release(source);
+        source = null;
     }
 
     /**
@@ -118,6 +124,7 @@ public class NettyServletInputStream extends ServletInputStream {
         byteBuf.readBytes(bytes, off, readableBytes);
         //返回实际读取的字节数
         int size  = readableBytes - byteBuf.readableBytes();
+        ReferenceCountUtil.release(byteBuf);
         return size;
     }
 

@@ -38,10 +38,12 @@ import java.net.InetSocketAddress;
 @ChannelHandler.Sharable
 public class DispatcherServletHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
     private static final Logger LOGGER = LoggerFactory.getLogger(DispatcherServletHandler.class);
+
     private static class SingletonHolder {
 
         public final static DispatcherServletHandler handler = new DispatcherServletHandler();
     }
+
     public static DispatcherServletHandler getInstance() {
         return DispatcherServletHandler.SingletonHolder.handler;
     }
@@ -50,22 +52,22 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<FullHt
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
 
         /**1、验证请求解码状态，父类已释放资源*/
-        if(!fullHttpRequest.decoderResult().isSuccess()){
-            return ;
+        if (!fullHttpRequest.decoderResult().isSuccess()) {
+            return;
         }
 
         /**2、过滤FAVICON请求，父类已释放资源*/
-        if(NettyConstant.HTTP_REQUEST_FAVICON.equalsIgnoreCase(fullHttpRequest.uri())){
-            return ;
+        if (NettyConstant.HTTP_REQUEST_FAVICON.equalsIgnoreCase(fullHttpRequest.uri())) {
+            return;
         }
 
         /**3、FullHTTPRequest 转换为ServletRequest*/
         NettyHttpServletRequest servletRequest = new NettyHttpServletRequest(
-                fullHttpRequest,(InetSocketAddress)ctx.channel().remoteAddress());
+                fullHttpRequest, (InetSocketAddress) ctx.channel().remoteAddress());
 
         /**4、分配IO堆外内存，实现Zero拷贝*/
         ByteBuf result = ctx.alloc().ioBuffer();
-        try{
+        try {
             /**5、初始化ServletRequestStream、ServletOutputStream、ServletResponse、DispacherServlet对象*/
             NettyServletOutputStream outputStream = new NettyServletOutputStream(result);
             NettyHttpServletResponse servletResponse = new NettyHttpServletResponse(outputStream);
@@ -75,8 +77,8 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<FullHt
 
             /**6、执行Servlet.dispacher分发(包含Filter、Interceptor、Service流程)*/
             dispatcherServlet.dispatch(servletRequest, servletResponse);
-            if (!servletRequest.isActive()){
-                return ;
+            if (!servletRequest.isActive()) {
+                return;
             }
 
             /**7、获取ServletOutputStream流并封装FullHTTPResponse对象*/
@@ -88,21 +90,23 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<FullHt
             /**8、设置Response头信息*/
             fullHttpResponse.headers().setAll(servletResponse.getHeaders());
             fullHttpResponse.headers().set(HttpHeaderNames.CONTENT_LENGTH, result.readableBytes());
-            if(fullHttpResponse.headers().get(HttpHeaderNames.CONTENT_TYPE) ==null){
+            if (fullHttpResponse.headers().get(HttpHeaderNames.CONTENT_TYPE) == null) {
                 fullHttpResponse.headers().set(HttpHeaderNames.CONTENT_TYPE, MediaType.APPLICATION_JSON_UTF8_VALUE);
             }
 
             /**10、返回客户端并监听关闭，写入ByteBuf失败，不再重复写入，生产建议开启判断，防止IO缓存OOM*/
-            if (ctx.channel().isWritable()){
+            if (ctx.channel().isActive() && ctx.channel().isWritable()) {
                 ctx.writeAndFlush(fullHttpResponse).addListener(ChannelFutureListener.CLOSE);
+            }else{
+                LOGGER.error("Netty IO 输出队列已满/channel非活跃状态，丢弃消息");
             }
-        }catch (Exception ex){
-            LOGGER.error(this.getClass().getName()+" 处理异常",ex);
-        }finally {
-            if(servletRequest!=null){
+        } catch (Exception ex) {
+            LOGGER.error(this.getClass().getName() + " 处理异常", ex);
+        } finally {
+            if (servletRequest != null) {
                 servletRequest.close();
             }
-            if (result!=null){
+            if (result != null) {
                 ReferenceCountUtil.release(result);
             }
         }

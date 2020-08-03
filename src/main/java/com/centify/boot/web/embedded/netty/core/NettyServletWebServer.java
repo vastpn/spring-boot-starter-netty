@@ -8,6 +8,8 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.WriteBufferWaterMark;
 import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioChannelOption;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -36,14 +38,20 @@ import java.util.concurrent.ForkJoinPool;
 public class NettyServletWebServer implements WebServer {
     private static final Logger LOGGER = LoggerFactory.getLogger(NettyServletWebServer.class);
 
-    /**监听端口地址*/
+    /**
+     * 监听端口地址
+     */
     private final InetSocketAddress address;
     private final NettyEmbeddedProperties nettyCustom;
 
-    /**Netty事件接收线程池组*/
+    /**
+     * Netty事件接收线程池组
+     */
     private EventLoopGroup acceptGroup;
 
-    /**Netty事件处理线程池组*/
+    /**
+     * Netty事件处理线程池组
+     */
     private EventLoopGroup workerGroup;
 
     private Boolean epollFlag;
@@ -65,8 +73,13 @@ public class NettyServletWebServer implements WebServer {
         initWorkerGroup();
         try {
             /**绑定接收请求、处理请求工作组，并设置HTTP/TCP通讯参数*/
-            bootstrap.group(acceptGroup, workerGroup)
-                    .channel(NioServerSocketChannel.class)
+            bootstrap.group(acceptGroup, workerGroup);
+            if (epollFlag) {
+                bootstrap.channel(EpollServerSocketChannel.class);
+            } else {
+                bootstrap.channel(NioServerSocketChannel.class);
+            }
+            bootstrap
                     .localAddress(address.getPort())
                     /*是否允许端口占用*/
                     .option(ChannelOption.SO_REUSEADDR, nettyCustom.getOptionSoReuseaddr())
@@ -97,8 +110,8 @@ public class NettyServletWebServer implements WebServer {
             ChannelFuture channelFuture = bootstrap.bind(address).syncUninterruptibly().addListener(future -> {
                 StringBuilder logBanner = new StringBuilder();
                 logBanner.append("[Container] 容器启动成功！")
-                .append("服务端IP: ").append(address.getAddress().getHostAddress())
-                .append("监听端口：").append(address.getPort());
+                        .append("服务端IP: ").append(address.getAddress().getHostAddress())
+                        .append("监听端口：").append(address.getPort());
                 LOGGER.info(logBanner.toString());
             });
             /**通过引入监听器对象监听future状态，当future任务执行完成后会调用-》{}内的方法*/
@@ -110,7 +123,7 @@ public class NettyServletWebServer implements WebServer {
                 LOGGER.info("[Container] Netty Http服务停止完成!");
             });
         } catch (Exception e) {
-            LOGGER.error("[Container] 容器启动异常，开始释放资源 " ,e);
+            LOGGER.error("[Container] 容器启动异常，开始释放资源 ", e);
             acceptGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
             LOGGER.error("[Container] Netty Start Error，资源释放完成！");
@@ -119,28 +132,27 @@ public class NettyServletWebServer implements WebServer {
     }
 
     private void initWorkerGroup() {
-        LOGGER.info("[Container] workerGroup线程池Epoll类型：{} ",epollFlag);
-//        if (epollFlag){
-//            workerGroup = new EpollEventLoopGroup(Runtime.getRuntime().availableProcessors() * 2,
-//                    new DefaultThreadFactory("workerGroup"));
-//
-//        }else{
-//        workerGroup = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() * 2,new DefaultThreadFactory("workerGroup"));
-        workerGroup =new NioEventLoopGroup(nettyCustom.getWorkerGroupThread(),
-                new ForkJoinPool(nettyCustom.getWorkerGroupThread()));
-//        }
+        LOGGER.info("[Container] workerGroup线程池Epoll类型：{} ", epollFlag);
+        if (epollFlag) {
+            workerGroup = new EpollEventLoopGroup(nettyCustom.getWorkerGroupThread(),
+                    new ForkJoinPool(nettyCustom.getWorkerGroupThread()));
+
+        } else {
+            workerGroup = new NioEventLoopGroup(nettyCustom.getWorkerGroupThread(),
+                    new ForkJoinPool(nettyCustom.getWorkerGroupThread()));
+        }
     }
 
     private void initAcceptGroup() {
-        LOGGER.info("[Container] acceptGroup线程池Epoll类型：{} ",epollFlag);
-//        if (epollFlag){
-//            acceptGroup = new EpollEventLoopGroup(1,
-//                    new DefaultThreadFactory("acceptGroup"));
-//        }else{
-        acceptGroup = new NioEventLoopGroup(
-                nettyCustom.getAcceptGroupThread(),
-                new DefaultThreadFactory(nettyCustom.getAcceptGroupPoolName()));
-//        }
+        LOGGER.info("[Container] acceptGroup线程池Epoll类型：{} ", epollFlag);
+        if (epollFlag) {
+            acceptGroup = new EpollEventLoopGroup(nettyCustom.getAcceptGroupThread(),
+                    new DefaultThreadFactory(nettyCustom.getAcceptGroupPoolName()));
+        } else {
+            acceptGroup = new NioEventLoopGroup(
+                    nettyCustom.getAcceptGroupThread(),
+                    new DefaultThreadFactory(nettyCustom.getAcceptGroupPoolName()));
+        }
     }
 
     /**
@@ -159,7 +171,7 @@ public class NettyServletWebServer implements WebServer {
                 workerGroup.shutdownGracefully().await();
             }
         } catch (InterruptedException e) {
-            LOGGER.error("[Container] 关闭容器异常.",e);
+            LOGGER.error("[Container] 关闭容器异常.", e);
             throw new WebServerException("Container stop interrupted", e);
         }
         LOGGER.info("[Container] 关闭容器完成.");
