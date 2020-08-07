@@ -3,6 +3,11 @@ package com.centify.boot.web.embedded.netty;
 import io.netty.buffer.Unpooled;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -54,6 +59,30 @@ public class NettyServletWebApplication {
 
         return result;
     }
+
+    @DeleteMapping("/delete/{userName}/{ids}")
+    public String delete(@PathVariable String userName,@PathVariable String ids){
+        return "delete:"+userName+"-"+ids;
+    }
+
+    @GetMapping("/download")
+    public ResponseEntity<InputStreamResource> download() throws IOException {
+        String filePath = "d://LinuxProbe.pdf";
+        FileSystemResource file = new FileSystemResource(filePath);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Cache-Control", "no-cache, no-store, must-revalidate");
+        headers.add("Content-Disposition", String.format("attachment; filename=\"%s\"", new String(file.getFilename().getBytes("utf-8"), "ISO8859-1")));
+        headers.add("Pragma", "no-cache");
+        headers.add("Expires", "0");
+
+        return ResponseEntity
+                .ok()
+                .headers(headers)
+                .contentLength(file.contentLength())
+                .contentType(MediaType.parseMediaType("application/octet-stream"))
+                .body(new InputStreamResource(file.getInputStream()));
+    }
+
     @GetMapping("/{a}/{b}")
     public Integer get(@PathVariable Integer a, @PathVariable Integer b) {
 //
