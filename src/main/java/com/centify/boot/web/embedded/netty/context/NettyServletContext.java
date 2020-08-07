@@ -77,7 +77,8 @@ public class NettyServletContext implements ServletContext {
 
     private final Map<String, String> servletMappings = new HashMap<>(2);
 
-    private final Map<String, NettyFilterRegistration> filters = new HashMap<>(8);
+    /**按照Servlet的AddFilter插入顺序，Filter集合必须是按照插入的顺序保存，才能实现Filter有序执行，顾采用LinkedHashMap*/
+    private final Map<String, NettyFilterRegistration> filters = new LinkedHashMap<>(8);
 
     private final Map<String, ServletContext> contexts = new HashMap<>(2);
 

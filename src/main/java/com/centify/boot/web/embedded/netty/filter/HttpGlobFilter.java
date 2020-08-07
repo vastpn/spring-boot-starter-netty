@@ -2,6 +2,7 @@ package com.centify.boot.web.embedded.netty.filter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.web.servlet.filter.OrderedFilter;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -23,9 +24,8 @@ import javax.servlet.*;
  *   1.0   2020/5/26 11:18        tanlin            new file.
  * <pre>
  */
-@Order(Ordered.LOWEST_PRECEDENCE - 1)
 @Component
-public class HttpGlobFilter implements Filter {
+public class HttpGlobFilter implements OrderedFilter {
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpGlobFilter.class);
 
     @Override
@@ -45,4 +45,8 @@ public class HttpGlobFilter implements Filter {
     public void destroy() {
     }
 
+    @Override
+    public int getOrder() {
+        return 3;
+    }
 }
