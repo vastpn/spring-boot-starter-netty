@@ -50,7 +50,7 @@ public class NettyEmbeddedProperties {
     /**
      * 服务端可处理队列数量，默认=1024
      */
-    private Integer optionSoBacklog = 1024;
+    private Integer optionSoBacklog = 128;
 
     /**
      * 接收缓冲区初始大小，默认=4KB
@@ -58,14 +58,14 @@ public class NettyEmbeddedProperties {
     private Integer optionSoRcvbuf = 4 * 1024;
 
     /**
-     * 低水位线，默认=128KB
+     * 低水位线，默认=32KB
      */
-    private Integer childOptionWriteBufferLowWaterMark = 128 * 1024;
+    private Integer childOptionWriteBufferLowWaterMark = 32 * 1024;
 
     /**
-     * 高水位线，默认=256KB
+     * 高水位线，默认=64KB
      */
-    private Integer childOptionWriteBufferHighWaterMark = 256 * 1024;
+    private Integer childOptionWriteBufferHighWaterMark = 64 * 1024;
 
     /**
      * 响应时间有高要求的场景，默认=true 禁用nagle算法
@@ -78,9 +78,9 @@ public class NettyEmbeddedProperties {
     private Boolean childOptionsoReuseaddr = Boolean.TRUE;
 
     /**
-     * 是否设置TCP/IP长连接，默认=true
+     * 是否设置TCP/IP长连接，默认=False
      */
-    private Boolean childOptionsoKeepalive = Boolean.TRUE;
+    private Boolean childOptionsoKeepalive = Boolean.FALSE;
 
     /**
      * 接收数据大小，默认=4KB
