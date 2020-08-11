@@ -48,7 +48,7 @@ public class NettyEmbeddedProperties {
     private Boolean optionSoReuseaddr = Boolean.TRUE;
 
     /**
-     * 服务端可处理队列数量，默认=1024
+     * 服务端可处理队列数量，默认=128
      */
     private Integer optionSoBacklog = 128;
 
