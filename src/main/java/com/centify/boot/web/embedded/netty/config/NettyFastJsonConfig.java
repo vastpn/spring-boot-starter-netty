@@ -13,7 +13,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -62,7 +66,7 @@ public class NettyFastJsonConfig implements WebMvcConfigurer {
                 SerializerFeature.WriteNullStringAsEmpty,
                 /**消除循环引用*/
                 SerializerFeature.DisableCircularReferenceDetect,
-                SerializerFeature.WriteDateUseDateFormat,
+//                SerializerFeature.WriteDateUseDateFormat,
                 SerializerFeature.WriteBigDecimalAsPlain
 
         };
@@ -72,10 +76,16 @@ public class NettyFastJsonConfig implements WebMvcConfigurer {
         serializeConfig.put(BigInteger.class, ToStringSerializer.instance);
         serializeConfig.put(Long.class, ToStringSerializer.instance);
         serializeConfig.put(Long.TYPE, ToStringSerializer.instance);
+        serializeConfig.put(LocalDateTime.class, LocalDateTimeSerializer.instance);
+        serializeConfig.put(LocalDate.class, LocalDateSerializer.instance);
+        serializeConfig.put(LocalTime.class, LocalTimeSerializer.instance);
+        serializeConfig.put(Date.class, DateSerializer.instance);
+
+
         fastJsonConfig.setSerializeConfig(serializeConfig);
 
         fastJsonConfig.setSerializerFeatures(features);
-        fastJsonConfig.setDateFormat("yyyy-MM-dd HH:mm:ss");
+//        fastJsonConfig.setDateFormat("yyyy-MM-dd HH:mm:ss");
         fastJsonConverter.setFastJsonConfig(fastJsonConfig);
 
         List<MediaType> supportedMediaTypes = new ArrayList<>();
@@ -88,13 +98,11 @@ public class NettyFastJsonConfig implements WebMvcConfigurer {
 
     private void removeJacksonConfigurer(List<HttpMessageConverter<?>> converters) {
         Iterator<HttpMessageConverter<?>> iterator = converters.iterator();
-        while(iterator.hasNext()){
+        while (iterator.hasNext()) {
             HttpMessageConverter<?> converter = iterator.next();
-            if(converter instanceof MappingJackson2HttpMessageConverter){
+            if (converter instanceof MappingJackson2HttpMessageConverter) {
                 iterator.remove();
             }
         }
     }
-
-
 }
