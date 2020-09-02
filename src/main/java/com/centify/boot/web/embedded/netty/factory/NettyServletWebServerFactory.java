@@ -19,32 +19,37 @@ import java.net.InetSocketAddress;
 
 /**
  * <pre>
- * <b>NettyServlet WebServer 容器</b>
- * <b>Describe:
- * 1、Netty Servlet WebServer 工厂服务类
- * 2、SpringBoot 自动注入并获取web应用的容器</b>
+ * <b>TODO</b>
+ * <b>Describe:TODO</b>
  *
- * <b>Author: tanlin [2020/7/6 9:51]</b>
+ * <b>Author: tanlin [2020/8/28 10:59]</b>
  * <b>Copyright:</b> Copyright 2008-2026 http://www.jinvovo.com Technology Co., Ltd. All rights reserved.
  * <b>Changelog:</b>
  *   Ver   Date                  Author           Detail
  *   ----------------------------------------------------------------------------
- *   1.0   2020/7/6 9:51        tanlin            new file.
+ *   1.0   2020/8/28 10:59        tanlin            new file.
  * <pre>
  */
-public class NettyServletWebServerFactory extends AbstractServletWebServerFactory implements ResourceLoaderAware {
+public class NettyServletWebServerFactory extends AbstractServletWebServerFactory
+        implements ConfigurableNettyServletWebServerFactory, ResourceLoaderAware {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(NettyServletWebServerFactory.class);
-    private NettyEmbeddedProperties nettyEmbeddedProperties;
+
+    /**
+     * 环境配置对象
+     */
+    private final Environment environment;
+    /**
+     * WebServer 配置属性
+     */
+    private final ServerProperties serverProperties;
+
+    private final NettyEmbeddedProperties nettyProperties;
 
     /**
      * 资源加载器
      */
     private ResourceLoader resourceLoader;
-
-    /**
-     * 环境配置对象
-     */
-    public static Environment environment;
 
     /**
      * 服务端IP、端口、主机名
@@ -53,15 +58,16 @@ public class NettyServletWebServerFactory extends AbstractServletWebServerFactor
 
     public static NettyServletContext servletContext;
 
-    /**
-     * WebServer 配置属性
-     */
-    private final ServerProperties serverProperties;
 
-    public NettyServletWebServerFactory(Environment environment, ServerProperties serverProperties, NettyEmbeddedProperties nettyEmbeddedProperties) {
-        NettyServletWebServerFactory.environment = environment;
+    public NettyServletWebServerFactory(Environment environment,
+                                        ServerProperties serverProperties,
+                                        NettyEmbeddedProperties nettyProperties){
+
+        super(serverProperties.getPort());
+        getJsp().setRegistered(false);
+        this.environment = environment;
         this.serverProperties = serverProperties;
-        this.nettyEmbeddedProperties = nettyEmbeddedProperties;
+        this.nettyProperties = nettyProperties;
     }
 
     @Override
@@ -74,8 +80,16 @@ public class NettyServletWebServerFactory extends AbstractServletWebServerFactor
         int port = getPort() > 0 ? getPort() : 8080;
         serverAddress = new InetSocketAddress(port);
         /**初始化容器并返回*/
-        return new NettyServletWebServer(serverAddress,nettyEmbeddedProperties);
+
+        return new NettyServletWebServer(serverAddress,nettyProperties);
     }
+
+
+    @Override
+    public void setResourceLoader(ResourceLoader resourceLoader) {
+        this.resourceLoader = resourceLoader;
+    }
+
     private void logContainer() {
         /**Netty启动环境相关信息*/
         Package nettyPackage = Bootstrap.class.getPackage();
@@ -83,8 +97,9 @@ public class NettyServletWebServerFactory extends AbstractServletWebServerFactor
         String version = nettyPackage.getImplementationVersion();
         LOGGER.info("[Container] Netty环境：{} , {} ",title,version);
     }
+
     private void onStartup(ServletContextInitializer[] initializers) {
-        servletContext = new NettyServletContext(getContextPath(),resourceLoader);
+        servletContext = new NettyServletContext(getContextPath(),resourceLoader,serverProperties);
         for (ServletContextInitializer initializer : initializers) {
             try {
                 initializer.onStartup(servletContext);
@@ -93,8 +108,5 @@ public class NettyServletWebServerFactory extends AbstractServletWebServerFactor
             }
         }
     }
-    @Override
-    public void setResourceLoader(ResourceLoader resourceLoader) {
-        this.resourceLoader = resourceLoader;
-    }
+
 }

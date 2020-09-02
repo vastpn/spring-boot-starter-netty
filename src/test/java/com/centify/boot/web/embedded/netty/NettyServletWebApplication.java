@@ -18,6 +18,9 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.math.BigDecimal;
 import java.nio.channels.FileChannel;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -54,6 +57,9 @@ public class NettyServletWebApplication {
         result.put("longValue", new BigDecimal("120.000456").setScale(5, BigDecimal.ROUND_HALF_UP).longValue());
         result.put("floatValue", new BigDecimal("120.000456").setScale(5, BigDecimal.ROUND_HALF_UP).floatValue());
         result.put("intValue", new BigDecimal("120.000456").setScale(5, BigDecimal.ROUND_HALF_UP).intValue());
+        result.put("LocalDateTime",LocalDateTime.now());
+        result.put("LocalDate", LocalDate.now());
+        result.put("LocalTime", LocalTime.now());
         result.put("map", new HashMap<>());
         result.put("age", 20);
 

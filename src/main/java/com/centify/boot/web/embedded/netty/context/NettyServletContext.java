@@ -7,6 +7,7 @@ import com.centify.boot.web.embedded.netty.servlet.NettyServletRegistration;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
@@ -61,7 +62,7 @@ public class NettyServletContext implements ServletContext {
 
     private final String resourceBasePath;
 
-    private String contextPath = "";
+    private final ServerProperties serverProperties;
 
     private int majorVersion = 3;
 
@@ -94,33 +95,6 @@ public class NettyServletContext implements ServletContext {
     private Set<SessionTrackingMode> sessionTrackingModes;
 
     /**
-     * Create a new {@code NettyServletContext}, using no base path and a
-     * {@link DefaultResourceLoader} (i.e. the classpath root as WAR root).
-     * @see org.springframework.core.io.DefaultResourceLoader
-     */
-    public NettyServletContext() {
-        this("", null);
-    }
-
-    /**
-     * Create a new {@code NettyServletContext}, using a {@link DefaultResourceLoader}.
-     * @param resourceBasePath the root directory of the WAR (should not end with a slash)
-     * @see org.springframework.core.io.DefaultResourceLoader
-     */
-    public NettyServletContext(String resourceBasePath) {
-        this(resourceBasePath, null);
-    }
-
-    /**
-     * Create a new {@code NettyServletContext}, using the specified {@link ResourceLoader}
-     * and no base path.
-     * @param resourceLoader the ResourceLoader to use (or null for the default)
-     */
-    public NettyServletContext(@Nullable ResourceLoader resourceLoader) {
-        this("", resourceLoader);
-    }
-
-    /**
      * Create a new {@code NettyServletContext} using the supplied resource base
      * path and resource loader.
      * <p>Registers a for the Servlet named
@@ -129,10 +103,10 @@ public class NettyServletContext implements ServletContext {
      * @param resourceLoader the ResourceLoader to use (or null for the default)
      * @see #registerNamedDispatcher
      */
-    public NettyServletContext(String resourceBasePath, @Nullable ResourceLoader resourceLoader) {
+    public NettyServletContext(String resourceBasePath, @Nullable ResourceLoader resourceLoader, ServerProperties serverProperties) {
         this.resourceLoader = (resourceLoader != null ? resourceLoader : new DefaultResourceLoader());
         this.resourceBasePath = resourceBasePath;
-
+        this.serverProperties = serverProperties;
         // Use JVM temp dir as ServletContext temp dir.
         String tempDir = System.getProperty(TEMP_DIR_SYSTEM_PROPERTY);
         if (tempDir != null) {
@@ -157,15 +131,15 @@ public class NettyServletContext implements ServletContext {
 
     @Override
     public String getContextPath() {
-        return this.contextPath;
+        return "";
     }
 
     @Override
-    public ServletContext getContext(String contextPath) {
-        if (this.contextPath.equals(contextPath)) {
+    public ServletContext getContext(String uripath) {
+        if (this.serverProperties.getServlet().getContextPath().equals(uripath)) {
             return this;
         }
-        return this.contexts.get(contextPath);
+        return this.contexts.get(uripath);
     }
 
     @Override
@@ -474,7 +448,9 @@ public class NettyServletContext implements ServletContext {
 
     private ServletRegistration.Dynamic addServlet(String servletName, String className, Servlet servlet) throws ClassNotFoundException, InstantiationException, ServletException, IllegalAccessException {
         NettyServletRegistration servletRegistration = new NettyServletRegistration(this, servletName, className, servlet);
+
         servlets.put(servletName, servletRegistration);
+
         return servletRegistration;
     }
 
@@ -584,5 +560,9 @@ public class NettyServletContext implements ServletContext {
     }
     public void addFilterMapping(EnumSet<DispatcherType> dispatcherTypes, boolean isMatchAfter, String urlPattern) {
         // TODO 实现过滤器 后缀匹配
+    }
+
+    public Map<String, String> getServletMappings() {
+        return servletMappings;
     }
 }

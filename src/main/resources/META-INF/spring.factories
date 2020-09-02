@@ -1,0 +1,4 @@
+# Auto Configure
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.centify.boot.web.embedded.netty.factory.EmbeddedNettyWebServerFactoryCustomizerAutoConfiguration,\
+com.centify.boot.web.embedded.netty.factory.NettyServletWebServerFactoryAutoConfiguration

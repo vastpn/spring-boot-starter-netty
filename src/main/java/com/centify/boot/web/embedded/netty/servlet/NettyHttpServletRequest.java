@@ -104,8 +104,6 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     private DispatcherType dispatcherType = DispatcherType.REQUEST;
 
-    private String contextPath = "";
-
     private final Set<String> userRoles = new HashSet<>(4);
 
     private String servletPath = "";
@@ -739,7 +737,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     @Override
     public String getContextPath() {
-        return this.contextPath;
+        return NettyServletWebServerFactory.servletContext.getContextPath();
     }
 
     @Override

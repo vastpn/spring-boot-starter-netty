@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.centify.boot</groupId>
     <artifactId>spring-boot-starter-netty</artifactId>
-    <version>1.0.2-SNAPSHOT</version>
+    <version>1.0.4-SNAPSHOT</version>
 
     <dependencies>
         <!--自动生成Springboot starter 配置文件提示信息，便于yml、properties 编排-->

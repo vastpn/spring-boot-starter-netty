@@ -5,7 +5,9 @@ import com.centify.boot.web.embedded.netty.context.NettyServletContext;
 import javax.servlet.*;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * <pre>
@@ -58,16 +60,21 @@ public class NettyServletRegistration extends AbstractNettyRegistration implemen
     public void setRunAsRole(String roleName) {
 
     }
-
+    private final static AtomicInteger tempInteger =new AtomicInteger(0);
     @Override
     public Set<String> addMapping(String... urlPatterns) {
-        // TODO check for conflicts
+
+        if (urlPatterns ==null){
+            return Collections.emptySet();
+        }
 
         NettyServletContext context = getNettyContext();
         for (String urlPattern : urlPatterns) {
-            context.addServletMapping(urlPattern, getName());
+            Optional.ofNullable(urlPattern).ifPresent((item)->{
+                context.addServletMapping(item, getName());
+            });
         }
-        return Collections.emptySet();
+        return context.getServletMappings().keySet();
     }
 
     @Override
