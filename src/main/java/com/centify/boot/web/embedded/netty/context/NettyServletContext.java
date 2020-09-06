@@ -1,15 +1,14 @@
 package com.centify.boot.web.embedded.netty.context;
 
-import com.centify.boot.web.embedded.netty.servlet.NettyFilterChain;
-import com.centify.boot.web.embedded.netty.servlet.NettyFilterRegistration;
-import com.centify.boot.web.embedded.netty.servlet.NettyRequestDispatcher;
-import com.centify.boot.web.embedded.netty.servlet.NettyServletRegistration;
+import com.centify.boot.web.embedded.netty.constant.NettyConstant;
+import com.centify.boot.web.embedded.netty.servlet.*;
+import io.netty.handler.codec.http.multipart.DiskAttribute;
+import io.netty.handler.codec.http.multipart.DiskFileUpload;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.core.io.DefaultResourceLoader;
-import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.MediaType;
 import org.springframework.http.MediaTypeFactory;
@@ -18,16 +17,15 @@ import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.MimeType;
 import org.springframework.util.StringUtils;
-import org.springframework.web.util.WebUtils;
 
 import javax.servlet.*;
 import javax.servlet.descriptor.JspConfigDescriptor;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.file.InvalidPathException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -55,10 +53,9 @@ public class NettyServletContext implements ServletContext {
     /** Default Servlet name used by Tomcat, Jetty, JBoss, and GlassFish: {@value}. */
     private static final String COMMON_DEFAULT_SERVLET_NAME = "default";
 
-    private static final String TEMP_DIR_SYSTEM_PROPERTY = "java.io.tmpdir";
-
-
     private final ResourceLoader resourceLoader;
+
+    private ClassLoader classLoader;
 
     private final String resourceBasePath;
 
@@ -93,6 +90,16 @@ public class NettyServletContext implements ServletContext {
 
     @Nullable
     private Set<SessionTrackingMode> sessionTrackingModes;
+    private InetSocketAddress serverAddress;
+    private ResourceManager resourceManager;
+
+    public ResourceManager getResourceManager() {
+        return resourceManager;
+    }
+
+    public void setResourceManager(ResourceManager resourceManager) {
+        this.resourceManager = resourceManager;
+    }
 
     /**
      * Create a new {@code NettyServletContext} using the supplied resource base
@@ -101,20 +108,53 @@ public class NettyServletContext implements ServletContext {
      * {@literal 'default'}.
      * @param resourceBasePath the root directory of the WAR (should not end with a slash)
      * @param resourceLoader the ResourceLoader to use (or null for the default)
+     * @param serverAddress
      * @see #registerNamedDispatcher
      */
-    public NettyServletContext(String resourceBasePath, @Nullable ResourceLoader resourceLoader, ServerProperties serverProperties) {
+    public NettyServletContext(String resourceBasePath, @Nullable ResourceLoader resourceLoader, ServerProperties serverProperties, InetSocketAddress serverAddress) {
         this.resourceLoader = (resourceLoader != null ? resourceLoader : new DefaultResourceLoader());
+        this.classLoader = (this.resourceLoader.getClassLoader() == null?ClassUtils.getDefaultClassLoader():this.resourceLoader.getClassLoader());
         this.resourceBasePath = resourceBasePath;
         this.serverProperties = serverProperties;
-        // Use JVM temp dir as ServletContext temp dir.
-        String tempDir = System.getProperty(TEMP_DIR_SYSTEM_PROPERTY);
-        if (tempDir != null) {
-            this.attributes.put(WebUtils.TEMP_DIR_CONTEXT_ATTRIBUTE, new File(tempDir));
-        }
+        this.serverAddress = serverAddress;
+        createServletWorkDir(createTempDir("netty-docbase").getAbsolutePath());
+//        // Use JVM temp dir as ServletContext temp dir.
+//        String tempDir = System.getProperty(TEMPDIR);
+//        if (tempDir != null) {
+//            this.attributes.put(WebUtils.TEMP_DIR_CONTEXT_ATTRIBUTE, new File(tempDir));
+//        }
         FilterChain filterChain = NettyFilterChain.getInstance(null, this.filters.entrySet().stream()
                 .map(entry->entry.getValue().getFilter()).collect(Collectors.toList()));
         registerNamedDispatcher(this.defaultServletName, new NettyRequestDispatcher(filterChain));
+    }
+
+    private void createServletWorkDir(String docBase) {
+        String workspace = '/' + (serverAddress == null || isLocalhost(serverAddress.getHostName())? "localhost": serverAddress.getHostName());
+        this.resourceManager = new ResourceManager(docBase,workspace,classLoader);
+        this.resourceManager.mkdirs("/");
+
+        /**process Netty TempFile And Attribute Info*/
+        DiskFileUpload.deleteOnExitTemporaryFile = true;
+        DiskAttribute.deleteOnExitTemporaryFile = true;
+        DiskFileUpload.baseDirectory = resourceManager.getRealPath("/");
+        DiskAttribute.baseDirectory = resourceManager.getRealPath("/");
+    }
+    public static boolean isLocalhost(String host){
+        return "localhost".equalsIgnoreCase(host) || host.contains("0.0.0.0") ||  host.contains("127.0.0.1");
+    }
+    protected static File createTempDir(String prefix) {
+        try {
+            File tempDir = File.createTempFile(prefix + ".", "");
+            tempDir.delete();
+            tempDir.mkdir();
+            tempDir.deleteOnExit();
+            return tempDir;
+        }catch (IOException ex) {
+            throw new IllegalStateException(
+                    "Unable to create tempDir. java.io.tmpdir is set to "
+                            + System.getProperty("java.io.tmpdir"),
+                    ex);
+        }
     }
     /**
      * Build a full resource location for the given path, prepending the resource
@@ -177,52 +217,17 @@ public class NettyServletContext implements ServletContext {
 
     @Override
     public Set<String> getResourcePaths(String path) {
-        Set<String> thePaths = new HashSet<>();
-        if (!path.endsWith("/")) {
-            path += "/";
-        }
-        String basePath = getRealPath(path);
-        if (basePath == null) {
-            return thePaths;
-        }
-        File theBaseDir = new File(basePath);
-        if (!theBaseDir.exists() || !theBaseDir.isDirectory()) {
-            return thePaths;
-        }
-        String theFiles[] = theBaseDir.list();
-        if (theFiles == null) {
-            return thePaths;
-        }
-        for (String filename : theFiles) {
-            File testFile = new File(basePath + File.separator + filename);
-            if (testFile.isFile())
-                thePaths.add(path + filename);
-            else if (testFile.isDirectory())
-                thePaths.add(path + filename + "/");
-        }
-        return thePaths;
+        return resourceManager.getResourcePaths(path);
     }
 
     @Override
     public URL getResource(String path) throws MalformedURLException {
-        if (!path.startsWith("/"))
-            throw new MalformedURLException("Path '" + path + "' does not start with '/'");
-        URL url = new URL(getClassLoader().getResource(""), path.substring(1));
-        try {
-            url.openStream();
-        } catch (Throwable t) {
-            url = null;
-        }
-        return url;
+        return resourceManager.getResource(path);
     }
 
     @Override
     public InputStream getResourceAsStream(String path) {
-        try {
-            return getResource(path).openStream();
-        } catch (IOException e) {
-            return null;
-        }
+        return resourceManager.getResourceAsStream(path);
     }
 
     @Override
@@ -305,21 +310,8 @@ public class NettyServletContext implements ServletContext {
     }
 
     @Override
-    @Nullable
     public String getRealPath(String path) {
-        String resourceLocation = getResourceLocation(path);
-        Resource resource = null;
-        try {
-            resource = this.resourceLoader.getResource(resourceLocation);
-            return resource.getFile().getAbsolutePath();
-        }
-        catch (InvalidPathException | IOException ex) {
-            if (LOGGER.isWarnEnabled()) {
-                LOGGER.warn("Could not determine real path of resource " +
-                        (resource != null ? resource : resourceLocation), ex);
-            }
-            return null;
-        }
+        return resourceManager.getRealPath(path);
     }
 
     @Override
@@ -382,9 +374,9 @@ public class NettyServletContext implements ServletContext {
     }
 
     @Override
-    @Nullable
     public ClassLoader getClassLoader() {
-        return ClassUtils.getDefaultClassLoader();
+
+        return resourceManager.getClassLoader();
     }
 
     @Override
@@ -448,7 +440,6 @@ public class NettyServletContext implements ServletContext {
 
     private ServletRegistration.Dynamic addServlet(String servletName, String className, Servlet servlet) throws ClassNotFoundException, InstantiationException, ServletException, IllegalAccessException {
         NettyServletRegistration servletRegistration = new NettyServletRegistration(this, servletName, className, servlet);
-
         servlets.put(servletName, servletRegistration);
 
         return servletRegistration;
@@ -552,7 +543,7 @@ public class NettyServletContext implements ServletContext {
 
     @Override
     public String getVirtualServerName() {
-        throw new UnsupportedOperationException();
+        return NettyConstant.SERVER_AND_SYSTEM_INFO;
     }
 
     public void addServletMapping(String urlPattern, String name) {

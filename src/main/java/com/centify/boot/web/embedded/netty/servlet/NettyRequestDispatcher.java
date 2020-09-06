@@ -28,12 +28,14 @@ public class NettyRequestDispatcher implements RequestDispatcher {
     public void forward(ServletRequest request, ServletResponse response) throws ServletException, IOException {
         request.setAttribute(DISPATCHER_TYPE, DispatcherType.FORWARD);
         // TODO implement
+        filterChain.doFilter(request, response);
     }
 
     @Override
     public void include(ServletRequest request, ServletResponse response) throws ServletException, IOException {
         request.setAttribute(DISPATCHER_TYPE, DispatcherType.INCLUDE);
         // TODO implement
+        filterChain.doFilter(request, response);
     }
 
     public void dispatch(ServletRequest request, ServletResponse response) throws ServletException, IOException {

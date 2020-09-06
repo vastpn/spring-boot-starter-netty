@@ -1,6 +1,7 @@
 package com.centify.boot.web.embedded.netty.factory;
 
 import com.centify.boot.web.embedded.netty.config.NettyEmbeddedProperties;
+import com.centify.boot.web.embedded.netty.constant.NettyConstant;
 import com.centify.boot.web.embedded.netty.context.NettyServletContext;
 import com.centify.boot.web.embedded.netty.core.NettyServletWebServer;
 import io.netty.bootstrap.Bootstrap;
@@ -95,11 +96,11 @@ public class NettyServletWebServerFactory extends AbstractServletWebServerFactor
         Package nettyPackage = Bootstrap.class.getPackage();
         String title = nettyPackage.getImplementationTitle();
         String version = nettyPackage.getImplementationVersion();
-        LOGGER.info("[Container] Netty环境：{} , {} ",title,version);
+        LOGGER.info("{} [Container] Netty环境：{} , {} ", NettyConstant.SERVER_AND_SYSTEM_INFO,title,version);
     }
 
     private void onStartup(ServletContextInitializer[] initializers) {
-        servletContext = new NettyServletContext(getContextPath(),resourceLoader,serverProperties);
+        servletContext = new NettyServletContext(getContextPath(),resourceLoader,serverProperties,serverAddress);
         for (ServletContextInitializer initializer : initializers) {
             try {
                 initializer.onStartup(servletContext);

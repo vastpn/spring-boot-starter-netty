@@ -37,7 +37,7 @@ public class InterceptorConfig implements WebMvcConfigurer {
 
   @Override
   public void addInterceptors(InterceptorRegistry registry) {
-    registry.addInterceptor(httpGlobInterceptor).addPathPatterns("/**").excludePathPatterns("/emp/toLogin","/emp/login","/js/**","/css/**","/images/**");
+//    registry.addInterceptor(httpGlobInterceptor).addPathPatterns("/111/**").excludePathPatterns("/emp/toLogin","/emp/login","/js/**","/css/**","/images/**");
 
   }
 
