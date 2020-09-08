@@ -1,6 +1,7 @@
 package com.centify.boot.web.embedded.netty.factory;
 
 import com.centify.boot.web.embedded.netty.config.NettyEmbeddedProperties;
+import com.centify.boot.web.embedded.netty.config.NettyWebConfig;
 import io.netty.bootstrap.Bootstrap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,7 @@ import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ResourceLoader;
 
@@ -29,6 +31,7 @@ import org.springframework.core.io.ResourceLoader;
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnWebApplication
+@Import({NettyWebConfig.class})
 @EnableConfigurationProperties({ServerProperties.class, NettyEmbeddedProperties.class})
 public class EmbeddedNettyWebServerFactoryCustomizerAutoConfiguration {
 

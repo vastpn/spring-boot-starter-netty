@@ -2,6 +2,9 @@ package com.centify.boot.web.embedded.netty.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+
 /**
  * <pre>
  * <b>Netty Web 容器属性</b>
@@ -106,6 +109,11 @@ public class NettyEmbeddedProperties {
      * channel写超时，默认=3秒
      */
     private Integer writeTimeoutSeconds = 3;
+
+    /**
+     * 编码
+     * */
+    private Charset uriEncoding = StandardCharsets.UTF_8;
 
     public Integer getAcceptGroupThread() {
         return acceptGroupThread;
@@ -243,6 +251,14 @@ public class NettyEmbeddedProperties {
         this.writeTimeoutSeconds = writeTimeoutSeconds;
     }
 
+    public Charset getUriEncoding() {
+        return uriEncoding;
+    }
+
+    public void setUriEncoding(Charset uriEncoding) {
+        this.uriEncoding = uriEncoding;
+    }
+
     @Override
     public String toString() {
         return "NettyEmbeddedProperties{" +
@@ -263,6 +279,7 @@ public class NettyEmbeddedProperties {
                 ", \r\n     requestDataMaxcontentlength=" + requestDataMaxcontentlength +
                 ", \r\n     readTimeoutSeconds=" + readTimeoutSeconds +
                 ", \r\n     writeTimeoutSeconds=" + writeTimeoutSeconds +
+                ", \r\n     uriEncoding=" + uriEncoding.toString() +
                 '}';
     }
 }
