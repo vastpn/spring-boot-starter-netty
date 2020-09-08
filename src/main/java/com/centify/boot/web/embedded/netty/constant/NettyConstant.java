@@ -1,8 +1,5 @@
 package com.centify.boot.web.embedded.netty.constant;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * <pre>
  * <b>Netty静态类</b>
@@ -19,14 +16,22 @@ import org.slf4j.LoggerFactory;
 public final class NettyConstant {
     /**Http favicon.ico 地址*/
     public static final String HTTP_REQUEST_FAVICON="/favicon.ico";
-    public static final String SERVER_AND_SYSTEM_INFO;
+
+    public static final String OS_SYSTEM_INFO;
+
+    public static final String JVM_INFO;
     static {
         StringBuilder infos = new StringBuilder();
-        infos.append("[OS:]Name:").append(System.getProperty("os.name")).append(",")
+        infos.append("[OS-System] Name:").append(System.getProperty("os.name")).append(",")
                 .append("Version=").append(System.getProperty("os.version")).append(",")
-                .append("ARCH=").append(System.getProperty("os.arch")).append(" ;")
-                .append("[JVM:]Version=").append(System.getProperty("java.runtime.version")).append(",")
+                .append("ARCH=").append(System.getProperty("os.arch")).append(" ");
+
+        OS_SYSTEM_INFO = infos.toString();
+
+        infos = new StringBuilder();
+
+        infos.append("[JVM-System] Version=").append(System.getProperty("java.runtime.version")).append(",")
                 .append("Vendor=").append(System.getProperty("java.vm.vendor")).append(" ");
-        SERVER_AND_SYSTEM_INFO = infos.toString();
+        JVM_INFO = infos.toString();
     }
 }

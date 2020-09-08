@@ -151,7 +151,6 @@ public class NettyHttpServletResponse implements HttpServletResponse {
 
     @Override
     public void resetBuffer() {
-
     }
 
     public void setCommitted(boolean committed) {

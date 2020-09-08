@@ -5,18 +5,16 @@ import com.centify.boot.web.embedded.netty.servlet.*;
 import io.netty.handler.codec.http.multipart.DiskAttribute;
 import io.netty.handler.codec.http.multipart.DiskFileUpload;
 import lombok.SneakyThrows;
+import org.hibernate.validator.internal.util.ConcurrentReferenceHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.web.ServerProperties;
+import org.springframework.boot.web.server.MimeMappings;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.http.MediaType;
-import org.springframework.http.MediaTypeFactory;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
-import org.springframework.util.MimeType;
-import org.springframework.util.StringUtils;
 
 import javax.servlet.*;
 import javax.servlet.descriptor.JspConfigDescriptor;
@@ -59,6 +57,12 @@ public class NettyServletContext implements ServletContext {
 
     private final String resourceBasePath;
 
+    private String contextPath = "";
+
+    private String serverHeader;
+
+    private String servletContextName;
+
     private final ServerProperties serverProperties;
 
     private int majorVersion = 3;
@@ -80,7 +84,7 @@ public class NettyServletContext implements ServletContext {
 
     private final Map<String, ServletContext> contexts = new HashMap<>(2);
 
-    private final Map<String, MediaType> mimeTypes = new LinkedHashMap<>(2);
+    private final Map<String, MimeMappings.Mapping> mimeTypes = new LinkedHashMap<>(2);
 
     private final Set<String> declaredRoles = new LinkedHashSet<>(2);
 
@@ -92,6 +96,7 @@ public class NettyServletContext implements ServletContext {
     private Set<SessionTrackingMode> sessionTrackingModes;
     private InetSocketAddress serverAddress;
     private ResourceManager resourceManager;
+    private Map<String,RequestDispatcher> namedRequestDispatchers = new ConcurrentReferenceHashMap();
 
     public ResourceManager getResourceManager() {
         return resourceManager;
@@ -109,27 +114,24 @@ public class NettyServletContext implements ServletContext {
      * @param resourceBasePath the root directory of the WAR (should not end with a slash)
      * @param resourceLoader the ResourceLoader to use (or null for the default)
      * @param serverAddress
-     * @see #registerNamedDispatcher
      */
-    public NettyServletContext(String resourceBasePath, @Nullable ResourceLoader resourceLoader, ServerProperties serverProperties, InetSocketAddress serverAddress) {
+    public NettyServletContext(String resourceBasePath,String baseDir, ResourceLoader resourceLoader, ServerProperties serverProperties, InetSocketAddress serverAddress) {
         this.resourceLoader = (resourceLoader != null ? resourceLoader : new DefaultResourceLoader());
         this.classLoader = (this.resourceLoader.getClassLoader() == null?ClassUtils.getDefaultClassLoader():this.resourceLoader.getClassLoader());
         this.resourceBasePath = resourceBasePath;
+        this.contextPath = resourceBasePath;
         this.serverProperties = serverProperties;
         this.serverAddress = serverAddress;
-        createServletWorkDir(createTempDir("netty-docbase").getAbsolutePath());
-//        // Use JVM temp dir as ServletContext temp dir.
-//        String tempDir = System.getProperty(TEMPDIR);
-//        if (tempDir != null) {
-//            this.attributes.put(WebUtils.TEMP_DIR_CONTEXT_ATTRIBUTE, new File(tempDir));
-//        }
-        FilterChain filterChain = NettyFilterChain.getInstance(null, this.filters.entrySet().stream()
-                .map(entry->entry.getValue().getFilter()).collect(Collectors.toList()));
-        registerNamedDispatcher(this.defaultServletName, new NettyRequestDispatcher(filterChain));
+        setDocBase(baseDir);
+
     }
 
-    private void createServletWorkDir(String docBase) {
+    public void setDocBase(String docBase){
         String workspace = '/' + (serverAddress == null || isLocalhost(serverAddress.getHostName())? "localhost": serverAddress.getHostName());
+        setDocBase(docBase,workspace);
+    }
+
+    public void setDocBase(String docBase,String workspace){
         this.resourceManager = new ResourceManager(docBase,workspace,classLoader);
         this.resourceManager.mkdirs("/");
 
@@ -139,6 +141,20 @@ public class NettyServletContext implements ServletContext {
         DiskFileUpload.baseDirectory = resourceManager.getRealPath("/");
         DiskAttribute.baseDirectory = resourceManager.getRealPath("/");
     }
+
+    public String getServerHeader() {
+        return serverHeader;
+    }
+
+    public void setServerHeader(String serverHeader) {
+        this.serverHeader = serverHeader;
+    }
+
+    public void setServletContextName(String servletContextName) {
+        this.servletContextName = servletContextName;
+    }
+
+
     public static boolean isLocalhost(String host){
         return "localhost".equalsIgnoreCase(host) || host.contains("0.0.0.0") ||  host.contains("127.0.0.1");
     }
@@ -171,7 +187,7 @@ public class NettyServletContext implements ServletContext {
 
     @Override
     public String getContextPath() {
-        return "";
+        return this.contextPath;
     }
 
     @Override
@@ -203,16 +219,23 @@ public class NettyServletContext implements ServletContext {
     }
 
     @Override
-    public String getMimeType(String filePath) {
-        String extension = StringUtils.getFilenameExtension(filePath);
-        if (this.mimeTypes.containsKey(extension)) {
-            return this.mimeTypes.get(extension).toString();
+    public String getMimeType(String file) {
+        if (file == null) {
+            return null;
         }
-        else {
-            return MediaTypeFactory.getMediaType(filePath).
-                    map(MimeType::toString)
-                    .orElse(null);
+        int period = file.lastIndexOf('.');
+        if (period < 0) {
+            return null;
         }
+        String extension = file.substring(period + 1);
+        if (extension.length() < 1) {
+            return null;
+        }
+        return mimeTypes.get(extension).getMimeType();
+    }
+
+    public void setMimeTypesElement(String extension,MimeMappings.Mapping mimeType){
+        this.mimeTypes.put(extension,mimeType);
     }
 
     @Override
@@ -232,47 +255,14 @@ public class NettyServletContext implements ServletContext {
 
     @Override
     public RequestDispatcher getRequestDispatcher(String path) {
-        // FIXME proper path matching
-        String servletName = servletMappings.get(path);
-        if (servletName == null) {
-            servletName = servletMappings.get("/");
-        }
-        Servlet servlet = null;
-        try {
-            servlet = null == servletName ? null : servlets.get(servletName).getServlet();
-            if (servlet == null) {
-                return null;
-            }
-            // FIXME proper path matching
-            FilterChain filterChain = NettyFilterChain.getInstance(servlet, this.filters.entrySet().stream()
-                    .map(entry->entry.getValue().getFilter()).collect(Collectors.toList()));
-            return new NettyRequestDispatcher(filterChain);
-        } catch (ServletException e) {
-            // TODO log exception
-            return null;
-        }
+        return this.namedRequestDispatchers.get(this.defaultServletName);
     }
 
     @SneakyThrows
     @Override
     public RequestDispatcher getNamedDispatcher(String name) {
-        return (RequestDispatcher) (this.servlets.get(name)).getServlet();
+        return this.namedRequestDispatchers.get(name);
     }
-
-    /**
-     * Register a {@link RequestDispatcher} (typically a {@link })
-     * that acts as a wrapper for the named Servlet.
-     * @param name the name of the wrapped Servlet
-     * @param requestDispatcher the dispatcher that wraps the named Servlet
-     * @see #getNamedDispatcher
-     * @see #
-     */
-    public void registerNamedDispatcher(String name, RequestDispatcher requestDispatcher) {
-        Assert.notNull(name, "RequestDispatcher name must not be null");
-        Assert.notNull(requestDispatcher, "RequestDispatcher must not be null");
-//        this.namedRequestDispatchers.put(name, requestDispatcher);
-    }
-
 
     @Deprecated
     @Override
@@ -284,7 +274,8 @@ public class NettyServletContext implements ServletContext {
     @Override
     @Deprecated
     public Enumeration<Servlet> getServlets() {
-        return Collections.enumeration(Collections.emptySet());
+        return Collections.enumeration(servlets.values().stream().map((item)->
+            item.getServlet()).collect(Collectors.toList()));
     }
 
     @Override
@@ -439,8 +430,14 @@ public class NettyServletContext implements ServletContext {
     }
 
     private ServletRegistration.Dynamic addServlet(String servletName, String className, Servlet servlet) throws ClassNotFoundException, InstantiationException, ServletException, IllegalAccessException {
+        this.defaultServletName = servletName;
         NettyServletRegistration servletRegistration = new NettyServletRegistration(this, servletName, className, servlet);
         servlets.put(servletName, servletRegistration);
+
+        NettyFilterChain filterChain = NettyFilterChain.getInstance(servletRegistration, this.filters.entrySet().stream()
+                .map(entry->entry.getValue().getFilter()).collect(Collectors.toList()));
+        filterChain.setServletContext(this);
+        this.namedRequestDispatchers.put(servletName, new NettyRequestDispatcher(filterChain));
 
         return servletRegistration;
     }
@@ -543,7 +540,7 @@ public class NettyServletContext implements ServletContext {
 
     @Override
     public String getVirtualServerName() {
-        return NettyConstant.SERVER_AND_SYSTEM_INFO;
+        return NettyConstant.OS_SYSTEM_INFO;
     }
 
     public void addServletMapping(String urlPattern, String name) {

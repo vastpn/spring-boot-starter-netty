@@ -25,6 +25,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class NettyServletRegistration extends AbstractNettyRegistration implements ServletRegistration.Dynamic {
     private Servlet servlet;
 
+    private MultipartConfigElement multipartConfig;
+
     public NettyServletRegistration(NettyServletContext context, String servletName, String className, Servlet servlet) throws ClassNotFoundException, IllegalAccessException, InstantiationException, ServletException {
         super(servletName, className, context);
 
@@ -36,7 +38,7 @@ public class NettyServletRegistration extends AbstractNettyRegistration implemen
         this.servlet.init(this);
     }
 
-    public Servlet getServlet() throws ServletException {
+    public Servlet getServlet() {
 
         return this.servlet;
     }

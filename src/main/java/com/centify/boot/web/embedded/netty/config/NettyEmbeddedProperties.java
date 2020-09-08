@@ -245,7 +245,7 @@ public class NettyEmbeddedProperties {
 
     @Override
     public String toString() {
-        return "\r\nNettyEmbeddedProperties{" +
+        return "NettyEmbeddedProperties{" +
                 "  \r\n     acceptGroupThread=" + acceptGroupThread +
                 ", \r\n     acceptGroupPoolName='" + acceptGroupPoolName + '\'' +
                 ", \r\n     workerGroupThread=" + workerGroupThread +

@@ -1,5 +1,6 @@
 package com.centify.boot.web.embedded.netty.servlet;
 
+import com.centify.boot.web.embedded.netty.context.NettyServletContext;
 import io.netty.util.Recycler;
 
 import javax.servlet.*;
@@ -20,33 +21,29 @@ import java.util.Iterator;
  * <pre>
  */
 public class NettyFilterChain implements FilterChain {
-    private  Iterator<Filter> filterIterator;
-    private  Servlet servlet;
-
-    private final Recycler.Handle<NettyFilterChain> handle;
-
-    private static final Recycler<NettyFilterChain> RECYCLER = new Recycler<NettyFilterChain>() {
-        @Override
-        protected NettyFilterChain newObject(Handle<NettyFilterChain> handle) {
-            return new NettyFilterChain(handle);
-        }
-    };
-
-    private NettyFilterChain(Recycler.Handle<NettyFilterChain> handle){
-        this.handle=handle;
+    private Iterator<Filter> filterIterator;
+    private NettyServletRegistration servletRegistration;
+    private NettyServletContext servletContext;
+    private NettyFilterChain(){
     }
 
-    public static final NettyFilterChain getInstance(Servlet servlet, Iterable<Filter> filters){
-        NettyFilterChain chain = RECYCLER.get();
-        chain.servlet =servlet;
+    private static class SingletonHolder {
+        public final static NettyFilterChain xcCarEraInfoJFrame = new NettyFilterChain();
+    }
+
+    public static final NettyFilterChain getInstance(NettyServletRegistration servletRegistration, Iterable<Filter> filters){
+        NettyFilterChain chain = SingletonHolder.xcCarEraInfoJFrame;
+        chain.servletRegistration = servletRegistration ;
         chain.filterIterator = filters.iterator();
         return chain;
     }
 
-    public void recycle(){
-        filterIterator = null;
-        servlet = null;
-        handle.recycle(this);
+    public NettyServletContext getServletContext() {
+        return servletContext;
+    }
+
+    public void setServletContext(NettyServletContext servletContext) {
+        this.servletContext = servletContext;
     }
 
     @Override
@@ -54,9 +51,15 @@ public class NettyFilterChain implements FilterChain {
         if (filterIterator.hasNext()) {
             filterIterator.next().doFilter(request, response, this);
         } else {
-            servlet.service(request, response);
-            recycle();
+            servletRegistration.getServlet().service(request, response);
         }
     }
 
+    public NettyServletRegistration getServletRegistration() {
+        return servletRegistration;
+    }
+
+    public void setServletRegistration(NettyServletRegistration servletRegistration) {
+        this.servletRegistration = servletRegistration;
+    }
 }
