@@ -14,12 +14,15 @@ package com.centify.boot.web.embedded.netty.constant;
  * <pre>
  */
 public final class NettyConstant {
-    /**Http favicon.ico 地址*/
-    public static final String HTTP_REQUEST_FAVICON="/favicon.ico";
+    /**
+     * Http favicon.ico 地址
+     */
+    public static final String HTTP_REQUEST_FAVICON = "/favicon.ico";
 
     public static final String OS_SYSTEM_INFO;
 
     public static final String JVM_INFO;
+
     static {
         StringBuilder infos = new StringBuilder();
         infos.append("[OS-System] Name:").append(System.getProperty("os.name")).append(",")

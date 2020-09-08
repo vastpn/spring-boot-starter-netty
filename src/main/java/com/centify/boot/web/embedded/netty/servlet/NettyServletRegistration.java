@@ -30,9 +30,9 @@ public class NettyServletRegistration extends AbstractNettyRegistration implemen
     public NettyServletRegistration(NettyServletContext context, String servletName, String className, Servlet servlet) throws ClassNotFoundException, IllegalAccessException, InstantiationException, ServletException {
         super(servletName, className, context);
 
-        if(servlet == null){
+        if (servlet == null) {
             this.servlet = (Servlet) Class.forName(getClassName()).newInstance();
-        }else {
+        } else {
             this.servlet = servlet;
         }
         this.servlet.init(this);
@@ -62,17 +62,19 @@ public class NettyServletRegistration extends AbstractNettyRegistration implemen
     public void setRunAsRole(String roleName) {
 
     }
-    private final static AtomicInteger tempInteger =new AtomicInteger(0);
+
+    private final static AtomicInteger tempInteger = new AtomicInteger(0);
+
     @Override
     public Set<String> addMapping(String... urlPatterns) {
 
-        if (urlPatterns ==null){
+        if (urlPatterns == null) {
             return Collections.emptySet();
         }
 
         NettyServletContext context = getNettyContext();
         for (String urlPattern : urlPatterns) {
-            Optional.ofNullable(urlPattern).ifPresent((item)->{
+            Optional.ofNullable(urlPattern).ifPresent((item) -> {
                 context.addServletMapping(item, getName());
             });
         }

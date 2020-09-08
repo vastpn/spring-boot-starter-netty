@@ -84,7 +84,7 @@ public class NettyAsyncContext implements AsyncContext {
         httpRequest.setAttribute(ASYNC_REQUEST_URI, httpRequest.getRequestURI());
         httpRequest.setAttribute(ASYNC_SERVLET_PATH, httpRequest.getServletPath());
         final NettyRequestDispatcher dispatcher = (NettyRequestDispatcher) context.getRequestDispatcher(path);
-        ctx.executor().submit(()->{
+        ctx.executor().submit(() -> {
             try {
                 dispatcher.dispatch(httpRequest, servletResponse);
                 // TODO is this right?

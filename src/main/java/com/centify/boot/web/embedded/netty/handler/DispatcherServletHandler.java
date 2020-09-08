@@ -97,7 +97,7 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<FullHt
             /**10、返回客户端并监听关闭，写入ByteBuf失败，不再重复写入，生产建议开启判断，防止IO缓存OOM*/
             if (ctx.channel().isWritable()) {
                 ctx.writeAndFlush(fullHttpResponse).addListener(ChannelFutureListener.CLOSE);
-            }else{
+            } else {
                 LOGGER.error("Netty IO 输出队列已满/channel非活跃状态，丢弃消息");
             }
         } catch (Exception ex) {

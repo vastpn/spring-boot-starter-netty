@@ -2,11 +2,8 @@ package com.centify.boot.web.embedded.netty.config;
 
 import com.centify.boot.web.embedded.netty.interceptor.HttpGlobInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
-import org.springframework.web.multipart.MultipartResolver;
-import org.springframework.web.multipart.commons.CommonsMultipartResolver;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -28,22 +25,18 @@ import java.util.List;
  */
 @Configuration
 public class InterceptorConfig implements WebMvcConfigurer {
-  @Bean
-  public MultipartResolver multipartResolver() {
-    return new CommonsMultipartResolver();
-  }
-  @Autowired
-  private HttpGlobInterceptor httpGlobInterceptor;
 
-  @Override
-  public void addInterceptors(InterceptorRegistry registry) {
-//    registry.addInterceptor(httpGlobInterceptor).addPathPatterns("/111/**").excludePathPatterns("/emp/toLogin","/emp/login","/js/**","/css/**","/images/**");
+    @Autowired
+    private HttpGlobInterceptor httpGlobInterceptor;
 
-  }
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(httpGlobInterceptor).addPathPatterns("/**").excludePathPatterns("/emp/toLogin", "/emp/login", "/js/**", "/css/**", "/images/**");
+    }
 
-  @Override
-  public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-    //TODO Header公共参数统一赋值到Body中，减少前端工作(头信息赋值到RequestBody、RequestParam中)
-  }
+    @Override
+    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+        //TODO Header公共参数统一赋值到Body中，减少前端工作(头信息赋值到RequestBody、RequestParam中)
+    }
 
 }

@@ -100,6 +100,7 @@ public class NettyHttpServletResponse implements HttpServletResponse {
     public void setContentLength(int contentLength) {
         doAddHeaderValue(HttpHeaderNames.CONTENT_LENGTH.toString(), contentLength, true);
     }
+
     @Override
     public void setContentLengthLong(long contentLength) {
         doAddHeaderValue(HttpHeaderNames.CONTENT_LENGTH.toString(), contentLength, true);
@@ -115,8 +116,7 @@ public class NettyHttpServletResponse implements HttpServletResponse {
                     this.characterEncoding = mediaType.getCharset().name();
                     this.charset = true;
                 }
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 // Try to get charset value anyway
                 int charsetIndex = contentType.toLowerCase().indexOf(CHARSET_PREFIX);
                 if (charsetIndex != -1) {
@@ -190,7 +190,7 @@ public class NettyHttpServletResponse implements HttpServletResponse {
 
     @Override
     public void addCookie(Cookie cookie) {
-        this.headers.add(HttpHeaderNames.SET_COOKIE.toString(),cookie.getValue());
+        this.headers.add(HttpHeaderNames.SET_COOKIE.toString(), cookie.getValue());
     }
 
     @Override
@@ -201,6 +201,7 @@ public class NettyHttpServletResponse implements HttpServletResponse {
     /**
      * Return the names of all specified headers as a Set of Strings.
      * <p>As of Servlet 3.0, this method is also defined HttpServletResponse.
+     *
      * @return the {@code Set} of header name {@code Strings}, or an empty {@code Set} if none
      */
     @Override
@@ -214,6 +215,7 @@ public class NettyHttpServletResponse implements HttpServletResponse {
      * <p>As of Servlet 3.0, this method is also defined in HttpServletResponse.
      * As of Spring 3.1, it returns a stringified value for Servlet 3.0 compatibility.
      * Consider using  for raw Object access.
+     *
      * @param name the name of the header
      * @return the associated header value, or {@code null} if none
      */
@@ -228,6 +230,7 @@ public class NettyHttpServletResponse implements HttpServletResponse {
      * <p>As of Servlet 3.0, this method is also defined in HttpServletResponse.
      * As of Spring 3.1, it returns a List of stringified values for Servlet 3.0 compatibility.
      * Consider using  for raw Object access.
+     *
      * @param name the name of the header
      * @return the associated header values, or an empty List if none
      */
@@ -274,7 +277,7 @@ public class NettyHttpServletResponse implements HttpServletResponse {
     @Override
     public void sendError(int status, String errorMessage) throws IOException {
         this.status = status;
-        this.headers.set("errorMessage",errorMessage);
+        this.headers.set("errorMessage", errorMessage);
         setCommitted(true);
     }
 
@@ -290,41 +293,42 @@ public class NettyHttpServletResponse implements HttpServletResponse {
         setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
         setCommitted(true);
     }
+
     @Override
     public void setDateHeader(String name, long value) {
-        this.headers.set(name,value);
+        this.headers.set(name, value);
     }
 
     @Override
     public void addDateHeader(String name, long value) {
-        this.headers.add(name,value);
+        this.headers.add(name, value);
     }
 
     @Override
     public void setHeader(String name, String value) {
-        this.headers.set(name,value);
+        this.headers.set(name, value);
     }
 
     @Override
     public void addHeader(String name, String value) {
-        this.headers.add(name,value);
+        this.headers.add(name, value);
     }
 
     @Override
     public void setIntHeader(String name, int value) {
-        this.headers.setInt(name,value);
+        this.headers.setInt(name, value);
     }
 
     @Override
     public void addIntHeader(String name, int value) {
-        this.headers.addInt(name,value);
+        this.headers.addInt(name, value);
     }
 
     private void doAddHeaderValue(String name, Object value, boolean replace) {
         if (replace) {
-            headers.set(name,value);
-        }else {
-            headers.add(name,value);
+            headers.set(name, value);
+        } else {
+            headers.add(name, value);
         }
     }
 
@@ -340,7 +344,7 @@ public class NettyHttpServletResponse implements HttpServletResponse {
     public void setStatus(int status, String errorMessage) {
         if (!this.isCommitted()) {
             this.status = status;
-            this.headers.set("errorMessage",errorMessage);
+            this.headers.set("errorMessage", errorMessage);
         }
     }
 

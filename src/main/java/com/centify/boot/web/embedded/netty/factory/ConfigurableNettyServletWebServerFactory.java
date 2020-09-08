@@ -19,9 +19,10 @@ import java.io.File;
  *   1.0   2020/8/28 10:15        tanlin            new file.
  * <pre>
  */
-public interface ConfigurableNettyServletWebServerFactory extends ConfigurableServletWebServerFactory,ConfigurableWebServerFactory ,ServletWebServerFactory {
+public interface ConfigurableNettyServletWebServerFactory extends ConfigurableServletWebServerFactory, ConfigurableWebServerFactory, ServletWebServerFactory {
     /**
      * Set the Netty Servlet Web base directory. If not specified a temporary directory will be used.
+     *
      * @param baseDirectory the tomcat base directory
      */
     void setBaseDirectory(File baseDirectory);

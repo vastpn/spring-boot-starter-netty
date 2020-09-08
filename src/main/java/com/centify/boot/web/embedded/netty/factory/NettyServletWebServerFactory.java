@@ -39,7 +39,7 @@ import java.net.InetSocketAddress;
  * <pre>
  */
 public class NettyServletWebServerFactory extends AbstractServletWebServerFactory
-        implements ConfigurableNettyServletWebServerFactory, ResourceLoaderAware,  BeanFactoryAware, Ordered {
+        implements ConfigurableNettyServletWebServerFactory, ResourceLoaderAware, BeanFactoryAware, Ordered {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NettyServletWebServerFactory.class);
 
@@ -110,7 +110,7 @@ public class NettyServletWebServerFactory extends AbstractServletWebServerFactor
 
         File baseDir = (this.baseDirectory != null) ? this.baseDirectory : createTempDir("nettyServlet");
 
-        servletContext = new NettyServletContext(getContextPath(),baseDir.getAbsolutePath(), resourceLoader, serverProperties, serverAddress);
+        servletContext = new NettyServletContext(getContextPath(), baseDir.getAbsolutePath(), resourceLoader, serverProperties, serverAddress);
 
         MultipartProperties multipartProperties = beanFactory.getBean(MultipartProperties.class);
 
@@ -119,12 +119,12 @@ public class NettyServletWebServerFactory extends AbstractServletWebServerFactor
         servletContext.setServerHeader(getServerHeader());
         servletContext.setServletContextName(getDisplayName());
         for (MimeMappings.Mapping mapping : getMimeMappings()) {
-            servletContext.setMimeTypesElement(mapping.getExtension(),mapping);
+            servletContext.setMimeTypesElement(mapping.getExtension(), mapping);
         }
         String location = multipartProperties.getLocation();
-        if(location != null && !location.isEmpty()){
-            servletContext.setDocBase(location,"");
-        }else {
+        if (location != null && !location.isEmpty()) {
+            servletContext.setDocBase(location, "");
+        } else {
             servletContext.setDocBase(docBase.getAbsolutePath());
         }
     }
@@ -154,7 +154,7 @@ public class NettyServletWebServerFactory extends AbstractServletWebServerFactor
         LOGGER.info("[Container] Netty环境：{} , {} ",
                 nettyPackage.getImplementationTitle(),
                 nettyPackage.getImplementationVersion());
-        LOGGER.info("[Container] Netty容器：{} ",nettyProperties.toString());
+        LOGGER.info("[Container] Netty容器：{} ", nettyProperties.toString());
     }
 
     /**
@@ -212,7 +212,6 @@ public class NettyServletWebServerFactory extends AbstractServletWebServerFactor
 //            servletContext.setDocBase(bean.getDocumentRoot().getAbsolutePath());
 //        }
 //    }
-
 
 
     @Override

@@ -1,17 +1,13 @@
 package com.centify.boot.web.embedded.netty.factory;
 
 import com.centify.boot.web.embedded.netty.config.NettyEmbeddedProperties;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.BeanFactoryAware;
-import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.boot.context.properties.PropertyMapper;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.Environment;
-import org.springframework.core.io.ResourceLoader;
 
 /**
  * <pre>
@@ -27,7 +23,7 @@ import org.springframework.core.io.ResourceLoader;
  * <pre>
  */
 public class NettyServletWebServerFactoryCustomizer
-        implements WebServerFactoryCustomizer<ConfigurableNettyServletWebServerFactory> ,Ordered {
+        implements WebServerFactoryCustomizer<ConfigurableNettyServletWebServerFactory>, Ordered {
 
     private final Environment environment;
 

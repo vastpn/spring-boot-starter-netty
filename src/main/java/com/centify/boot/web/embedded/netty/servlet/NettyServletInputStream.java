@@ -1,7 +1,6 @@
 package com.centify.boot.web.embedded.netty.servlet;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.util.ReferenceCountUtil;
 
 import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;
@@ -34,6 +33,7 @@ public class NettyServletInputStream extends ServletInputStream {
         this.source = source;
         this.contentLength = source.capacity();
     }
+
     public int getContentLength() {
         return contentLength;
     }
@@ -46,11 +46,12 @@ public class NettyServletInputStream extends ServletInputStream {
 
     /**
      * 本次请求没再有新的HttpContent输入，而且当前的内容全部被读完
+     *
      * @return true=读取完毕 反之false
      */
     @Override
     public boolean isFinished() {
-        if(closed.get()){
+        if (closed.get()) {
             return true;
         }
         return source.readableBytes() == 0;
@@ -61,7 +62,7 @@ public class NettyServletInputStream extends ServletInputStream {
      */
     @Override
     public boolean isReady() {
-        if(source == null){
+        if (source == null) {
             return true;
         }
         return source.readableBytes() > 0;
@@ -99,6 +100,7 @@ public class NettyServletInputStream extends ServletInputStream {
 
     /**
      * 尝试更新current，然后读取len个字节并复制到b中（off下标开始）
+     *
      * @return 实际读取的字节数
      */
     @Override
@@ -118,7 +120,7 @@ public class NettyServletInputStream extends ServletInputStream {
         //复制到bytes数组
         byteBuf.readBytes(bytes, off, readableBytes);
         //返回实际读取的字节数
-        int size  = readableBytes - byteBuf.readableBytes();
+        int size = readableBytes - byteBuf.readableBytes();
         return size;
     }
 

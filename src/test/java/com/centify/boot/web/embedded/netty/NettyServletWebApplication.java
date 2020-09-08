@@ -57,7 +57,7 @@ public class NettyServletWebApplication {
         result.put("longValue", new BigDecimal("120.000456").setScale(5, BigDecimal.ROUND_HALF_UP).longValue());
         result.put("floatValue", new BigDecimal("120.000456").setScale(5, BigDecimal.ROUND_HALF_UP).floatValue());
         result.put("intValue", new BigDecimal("120.000456").setScale(5, BigDecimal.ROUND_HALF_UP).intValue());
-        result.put("LocalDateTime",LocalDateTime.now());
+        result.put("LocalDateTime", LocalDateTime.now());
         result.put("LocalDate", LocalDate.now());
         result.put("LocalTime", LocalTime.now());
         result.put("map", new HashMap<>());
@@ -67,8 +67,8 @@ public class NettyServletWebApplication {
     }
 
     @DeleteMapping("/delete/{userName}/{ids}")
-    public String delete(@PathVariable String userName,@PathVariable String ids){
-        return "delete:"+userName+"-"+ids;
+    public String delete(@PathVariable String userName, @PathVariable String ids) {
+        return "delete:" + userName + "-" + ids;
     }
 
     @GetMapping("/download")
@@ -94,34 +94,37 @@ public class NettyServletWebApplication {
 //
         return a + b;
     }
+
     @GetMapping("/reqparam")
-    public Map params(@RequestParam("id") Integer id, @RequestParam("name") String name, @RequestParam("inTime") String inTime){
+    public Map params(@RequestParam("id") Integer id, @RequestParam("name") String name, @RequestParam("inTime") String inTime) {
         Map result = new HashMap();
-        result.put("id",id);
-        result.put("name",name);
-        result.put("inTime",inTime);
+        result.put("id", id);
+        result.put("name", name);
+        result.put("inTime", inTime);
         return result;
     }
+
     @PostMapping("/reqbody")
-    public User getDefault(@RequestBody User user){
+    public User getDefault(@RequestBody User user) {
         return user;
     }
+
     @PostMapping("/form")
-    public User getForm(User user){
+    public User getForm(User user) {
         return user;
     }
 
     @PostMapping("/upload")
-    public Object mult(@RequestParam("file") MultipartFile file){
+    public Object mult(@RequestParam("file") MultipartFile file) {
         Map result = new HashMap();
-        result.put("status","success");
-        result.put("files",file.toString());
-        result.put("getContentType",file.getContentType());
-        result.put("getName",file.getOriginalFilename());
+        result.put("status", "success");
+        result.put("files", file.toString());
+        result.put("getContentType", file.getContentType());
+        result.put("getName", file.getOriginalFilename());
 
         try {
-            RandomAccessFile file1=new RandomAccessFile("D:/AAAA"+file.getOriginalFilename(),"rw");
-            FileChannel channel=file1.getChannel();
+            RandomAccessFile file1 = new RandomAccessFile("D:/AAAA" + file.getOriginalFilename(), "rw");
+            FileChannel channel = file1.getChannel();
             channel.write(Unpooled.wrappedBuffer(file.getBytes()).nioBuffer());
             channel.close();
         } catch (FileNotFoundException e) {
@@ -132,13 +135,14 @@ public class NettyServletWebApplication {
 
         return result;
     }
+
     @PostMapping("/files")
-    public Object mult(@RequestParam("files") MultipartFile[] files){
+    public Object mult(@RequestParam("files") MultipartFile[] files) {
         Map result = new HashMap();
-        result.put("status","success");
-        Optional.ofNullable(files).ifPresent(items->{
-            for(MultipartFile mu:files){
-                result.put("file"+mu.getOriginalFilename(),mu.getOriginalFilename());
+        result.put("status", "success");
+        Optional.ofNullable(files).ifPresent(items -> {
+            for (MultipartFile mu : files) {
+                result.put("file" + mu.getOriginalFilename(), mu.getOriginalFilename());
             }
         });
 

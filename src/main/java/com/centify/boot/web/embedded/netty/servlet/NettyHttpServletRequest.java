@@ -60,9 +60,10 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     /**
      * Date formats as specified in the HTTP RFC.
+     *
      * @see <a href="https://tools.ietf.org/html/rfc7231#section-7.1.1.1">Section 7.1.1.1 of RFC 7231</a>
      */
-    private static final String[] DATE_FORMATS = new String[] {
+    private static final String[] DATE_FORMATS = new String[]{
             "EEE, dd MMM yyyy HH:mm:ss zzz",
             "EEE, dd-MMM-yy HH:mm:ss zzz",
             "EEE MMM dd HH:mm:ss yyyy"
@@ -70,6 +71,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     /**
      * The default protocol: 'HTTP/1.1'.
+     *
      * @since 4.3.7
      */
     public static final String DEFAULT_PROTOCOL = "HTTP/1.1";
@@ -97,7 +99,9 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     private String protocol = DEFAULT_PROTOCOL;
 
-    /** List of locales in descending order. */
+    /**
+     * List of locales in descending order.
+     */
     private final LinkedList<Locale> locales = new LinkedList<>();
 
     private boolean secure = false;
@@ -116,7 +120,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     private final MultiValueMap<String, Part> parts = new LinkedMultiValueMap<>(4);
 
-    public NettyHttpServletRequest( FullHttpRequest fullHttpRequest, InetSocketAddress remoteInetSocketAddress) {
+    public NettyHttpServletRequest(FullHttpRequest fullHttpRequest, InetSocketAddress remoteInetSocketAddress) {
         this.fullHttpRequest = fullHttpRequest;
         this.remoteInetSocketAddress = remoteInetSocketAddress;
         this.uriComponents = UriComponentsBuilder.fromUriString(fullHttpRequest.uri()).build();
@@ -124,6 +128,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         this.inputStream.wrap(fullHttpRequest.content());
         setRequestParams();
     }
+
     private void setRequestParams() {
         if (HttpMethod.GET.equals(fullHttpRequest.method())) {
             innerGetParams();
@@ -234,6 +239,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
      * <p>If the supplied byte array represents text such as XML or JSON, the
      * {@link #setCharacterEncoding character encoding} should typically be
      * set as well.
+     *
      * @see #setCharacterEncoding(String)
      * @see #getContentAsByteArray()
      * @see #getContentAsString()
@@ -245,10 +251,11 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     /**
      * Get the content of the request body as a byte array.
+     *
      * @return the content as a byte array (potentially {@code null})
-     * @since 5.0
      * @see #setContent(byte[])
      * @see #getContentAsString()
+     * @since 5.0
      */
     @Nullable
     public byte[] getContentAsByteArray() {
@@ -258,13 +265,14 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     /**
      * Get the content of the request body as a {@code String}, using the configured
      * {@linkplain #getCharacterEncoding character encoding}.
+     *
      * @return the content as a {@code String}, potentially {@code null}
-     * @throws IllegalStateException if the character encoding has not been set
+     * @throws IllegalStateException        if the character encoding has not been set
      * @throws UnsupportedEncodingException if the character encoding is not supported
-     * @since 5.0
      * @see #setContent(byte[])
      * @see #setCharacterEncoding(String)
      * @see #getContentAsByteArray()
+     * @since 5.0
      */
     @Nullable
     public String getContentAsString() throws IllegalStateException, UnsupportedEncodingException {
@@ -272,11 +280,11 @@ public class NettyHttpServletRequest implements HttpServletRequest {
                 "Cannot get content as a String for a null character encoding. " +
                         "Consider setting the characterEncoding in the request.");
 
-        if (fullHttpRequest ==null){
+        if (fullHttpRequest == null) {
             return null;
         }
 
-        if (fullHttpRequest.content().readableBytes()<=0) {
+        if (fullHttpRequest.content().readableBytes() <= 0) {
             return null;
         }
         return new String(ByteBufUtil.getBytes(this.fullHttpRequest.content()), this.characterEncoding);
@@ -300,7 +308,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     @Override
     public ServletInputStream getInputStream() {
-        if(reader != null){
+        if (reader != null) {
             throw new IllegalStateException("getReader() has already been called for this request");
         }
         return inputStream;
@@ -312,7 +320,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
      * parameter name, they will be replaced.
      */
     public void setParameter(String name, String value) {
-        setParameter(name, new String[] {value});
+        setParameter(name, new String[]{value});
     }
 
     /**
@@ -335,11 +343,9 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         params.forEach((key, value) -> {
             if (value instanceof String) {
                 setParameter(key, (String) value);
-            }
-            else if (value instanceof String[]) {
+            } else if (value instanceof String[]) {
                 setParameter(key, (String[]) value);
-            }
-            else {
+            } else {
                 throw new IllegalArgumentException(
                         "Parameter map value must be single value " + " or array of type [" + String.class.getName() + "]");
             }
@@ -352,7 +358,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
      * parameter name, the given value will be added to the end of the list.
      */
     public void addParameter(String name, @Nullable String value) {
-        addParameter(name, new String[] {value});
+        addParameter(name, new String[]{value});
     }
 
     /**
@@ -368,8 +374,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
             System.arraycopy(oldArr, 0, newArr, 0, oldArr.length);
             System.arraycopy(values, 0, newArr, oldArr.length, values.length);
             this.parameters.put(name, newArr);
-        }
-        else {
+        } else {
             this.parameters.put(name, values);
         }
     }
@@ -384,11 +389,9 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         params.forEach((key, value) -> {
             if (value instanceof String) {
                 addParameter(key, (String) value);
-            }
-            else if (value instanceof String[]) {
+            } else if (value instanceof String[]) {
                 addParameter(key, (String[]) value);
-            }
-            else {
+            } else {
                 throw new IllegalArgumentException("Parameter map value must be single value " +
                         " or array of type [" + String.class.getName() + "]");
             }
@@ -448,7 +451,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         return fullHttpRequest.protocolVersion().protocolName();
     }
 
-    private String getHost(){
+    private String getHost() {
         return getHeader(HttpHeaderNames.HOST.toString());
     }
 
@@ -467,11 +470,11 @@ public class NettyHttpServletRequest implements HttpServletRequest {
 
     @Override
     public BufferedReader getReader() throws UnsupportedEncodingException {
-        if(reader == null){
-            if(readerFlag.compareAndSet(Boolean.FALSE,Boolean.TRUE)){
-                reader = StringUtils.isEmpty(this.characterEncoding)?
-                        new BufferedReader(new InputStreamReader(getInputStream())):
-                        new BufferedReader(new InputStreamReader(getInputStream(),this.characterEncoding));
+        if (reader == null) {
+            if (readerFlag.compareAndSet(Boolean.FALSE, Boolean.TRUE)) {
+                reader = StringUtils.isEmpty(this.characterEncoding) ?
+                        new BufferedReader(new InputStreamReader(getInputStream())) :
+                        new BufferedReader(new InputStreamReader(getInputStream(), this.characterEncoding));
             }
         }
         return reader;
@@ -495,8 +498,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         Assert.notNull(name, "Attribute name must not be null");
         if (value != null) {
             this.attributes.put(name, value);
-        }
-        else {
+        } else {
             this.attributes.remove(name);
         }
     }
@@ -525,6 +527,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
      * <p>In contrast to the Servlet specification, this  implementation
      * does <strong>not</strong> take into consideration any locales
      * specified via the {@code Accept-Language} header.
+     *
      * @see javax.servlet.ServletRequest#getLocale()
      */
     @Override
@@ -541,6 +544,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
      * <p>In contrast to the Servlet specification, this  implementation
      * does <strong>not</strong> take into consideration any locales
      * specified via the {@code Accept-Language} header.
+     *
      * @see javax.servlet.ServletRequest#getLocales()
      */
     @Override
@@ -551,6 +555,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     /**
      * Return {@code true} if the  flag has been set
      * to {@code true} or if the {@link #getScheme scheme} is {@code https}.
+     *
      * @see javax.servlet.ServletRequest#isSecure()
      */
     @Override
@@ -579,6 +584,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     public String getLocalName() {
         return NettyServletWebServerFactory.serverAddress.getHostString();
     }
+
     @Override
     public String getLocalAddr() {
         return NettyServletWebServerFactory.serverAddress.getAddress().getHostAddress();
@@ -627,10 +633,10 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     /**
      * 返回用于保护servlet的认证方案的名称。所有Servlet容器都支持基本，表单和客户端证书身份验证，并且可能还支持摘要身份验证。如果servlet未通过身份验证，null则返回。
      * 与CGI变量AUTH_TYPE的值相同。
-     *
+     * <p>
      * 返回值：
      * 静态成员BASIC_AUTH，FORM_AUTH，CLIENT_CERT_AUTH，DIGEST_AUTH（适用于==比较）之一或表示身份验证方案的特定于容器的字符串，或者 null是否未对请求进行身份验证。
-     * */
+     */
     @Override
     public String getAuthType() {
         //TODO 获取HTTP身份认证类型
@@ -652,7 +658,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
             return null;
         }
 
-        return  cookies.toArray(new Cookie[cookies.size()]);
+        return cookies.toArray(new Cookie[cookies.size()]);
     }
 
     /**
@@ -664,13 +670,14 @@ public class NettyHttpServletRequest implements HttpServletRequest {
      * <li>"EEE, dd-MMM-yy HH:mm:ss zzz"</li>
      * <li>"EEE MMM dd HH:mm:ss yyyy"</li>
      * </ul>
+     *
      * @param name the header name
      * @see <a href="https://tools.ietf.org/html/rfc7231#section-7.1.1.1">Section 7.1.1.1 of RFC 7231</a>
      */
     @Override
     public long getDateHeader(String name) {
         String value = getHeader(name);
-        if(StringUtils.isEmpty(value)){
+        if (StringUtils.isEmpty(value)) {
             return -1;
         }
         return parseDateHeader(name, (String) value);
@@ -682,8 +689,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
             simpleDateFormat.setTimeZone(GMT);
             try {
                 return simpleDateFormat.parse(value).getTime();
-            }
-            catch (ParseException ex) {
+            } catch (ParseException ex) {
                 // ignore
             }
         }
@@ -694,12 +700,12 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     @Nullable
     public String getHeader(String name) {
         Object value = this.fullHttpRequest.headers().get((CharSequence) name);
-        return value == null? null :String.valueOf(value);
+        return value == null ? null : String.valueOf(value);
     }
 
     @Override
     public Enumeration<String> getHeaders(String name) {
-        return Collections.enumeration(this.fullHttpRequest.headers().getAll((CharSequence)name));
+        return Collections.enumeration(this.fullHttpRequest.headers().getAll((CharSequence) name));
     }
 
     @Override
@@ -743,7 +749,7 @@ public class NettyHttpServletRequest implements HttpServletRequest {
     @Override
     @Nullable
     public String getQueryString() {
-        if (StringUtils.isEmpty(uriComponents.getQuery())){
+        if (StringUtils.isEmpty(uriComponents.getQuery())) {
             return null;
         }
         return UriUtils.decode(uriComponents.getQuery(), CharsetUtil.UTF_8);
@@ -755,10 +761,12 @@ public class NettyHttpServletRequest implements HttpServletRequest {
         //TODO 暂未实现RemoteUser
         return null;
     }
+
     @Override
     public boolean isUserInRole(String role) {
         return (this.userRoles.contains(role) || NettyServletWebServerFactory.servletContext.getDeclaredRoles().contains(role));
     }
+
     @Override
     public Principal getUserPrincipal() {
         //TODO 暂未实现Principal

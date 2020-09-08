@@ -5,18 +5,16 @@ import io.netty.bootstrap.Bootstrap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
-import org.springframework.boot.autoconfigure.AutoConfigureOrder;
-import org.springframework.boot.autoconfigure.condition.*;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.autoconfigure.condition.SearchStrategy;
 import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryAutoConfiguration;
-import org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryCustomizer;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
 
 import javax.servlet.ServletRequest;
@@ -38,8 +36,6 @@ import javax.servlet.ServletRequest;
  */
 
 
-
-
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnClass(ServletRequest.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
@@ -47,12 +43,12 @@ import javax.servlet.ServletRequest;
 @Import({ServletWebServerFactoryAutoConfiguration.BeanPostProcessorsRegistrar.class})
 public class NettyServletWebServerFactoryAutoConfiguration {
 
-
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass({Bootstrap.class, ServerProperties.class, NettyEmbeddedProperties.class})
     @ConditionalOnMissingBean(value = NettyServletWebServerFactory.class, search = SearchStrategy.CURRENT)
     public static class EmbeddedWebNetty {
         private static final Logger LOGGER = LoggerFactory.getLogger(EmbeddedWebNetty.class);
+
         /**
          * <pre>
          * <b>创建并转交Spring 管理的Netty Servlet Web 工厂</b>

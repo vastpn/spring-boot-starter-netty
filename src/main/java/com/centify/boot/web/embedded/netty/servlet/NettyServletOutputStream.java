@@ -23,7 +23,7 @@ import java.io.IOException;
 public class NettyServletOutputStream extends ServletOutputStream {
     private ByteBufOutputStream outputStream;
 
-    public NettyServletOutputStream(ByteBuf buffer){
+    public NettyServletOutputStream(ByteBuf buffer) {
         this.outputStream = new ByteBufOutputStream(buffer);
     }
 

@@ -8,12 +8,9 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.web.ServerProperties;
-import org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryAutoConfiguration;
-import org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryCustomizer;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ResourceLoader;
 
@@ -64,11 +61,11 @@ public class EmbeddedNettyWebServerFactoryCustomizerAutoConfiguration {
                 ResourceLoader resourceLoader) {
             LOGGER.info("[Container] NettyServletWeb自定义工厂配置");
             return new NettyServletWebServerFactoryCustomizer(
-                            environment,
-                            serverProperties,
-                            nettyEmbeddedProperties,
-                            factory,
-                            resourceLoader.getClassLoader());
+                    environment,
+                    serverProperties,
+                    nettyEmbeddedProperties,
+                    factory,
+                    resourceLoader.getClassLoader());
 
 
         }

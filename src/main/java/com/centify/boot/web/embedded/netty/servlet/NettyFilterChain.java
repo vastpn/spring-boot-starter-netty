@@ -1,7 +1,6 @@
 package com.centify.boot.web.embedded.netty.servlet;
 
 import com.centify.boot.web.embedded.netty.context.NettyServletContext;
-import io.netty.util.Recycler;
 
 import javax.servlet.*;
 import java.io.IOException;
@@ -24,16 +23,17 @@ public class NettyFilterChain implements FilterChain {
     private Iterator<Filter> filterIterator;
     private NettyServletRegistration servletRegistration;
     private NettyServletContext servletContext;
-    private NettyFilterChain(){
+
+    private NettyFilterChain() {
     }
 
     private static class SingletonHolder {
         public final static NettyFilterChain xcCarEraInfoJFrame = new NettyFilterChain();
     }
 
-    public static final NettyFilterChain getInstance(NettyServletRegistration servletRegistration, Iterable<Filter> filters){
+    public static final NettyFilterChain getInstance(NettyServletRegistration servletRegistration, Iterable<Filter> filters) {
         NettyFilterChain chain = SingletonHolder.xcCarEraInfoJFrame;
-        chain.servletRegistration = servletRegistration ;
+        chain.servletRegistration = servletRegistration;
         chain.filterIterator = filters.iterator();
         return chain;
     }

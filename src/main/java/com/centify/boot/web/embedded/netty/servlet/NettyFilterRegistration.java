@@ -47,7 +47,7 @@ public class NettyFilterRegistration extends AbstractNettyRegistration implement
         this.filter.init(this);
     }
 
-    public Filter getFilter()  {
+    public Filter getFilter() {
         return filter;
     }
 

@@ -48,7 +48,9 @@ public class NettyServletContext implements ServletContext {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NettyServletContext.class);
 
-    /** Default Servlet name used by Tomcat, Jetty, JBoss, and GlassFish: {@value}. */
+    /**
+     * Default Servlet name used by Tomcat, Jetty, JBoss, and GlassFish: {@value}.
+     */
     private static final String COMMON_DEFAULT_SERVLET_NAME = "default";
 
     private final ResourceLoader resourceLoader;
@@ -79,7 +81,9 @@ public class NettyServletContext implements ServletContext {
 
     private final Map<String, String> servletMappings = new HashMap<>(2);
 
-    /**按照Servlet的AddFilter插入顺序，Filter集合必须是按照插入的顺序保存，才能实现Filter有序执行，顾采用LinkedHashMap*/
+    /**
+     * 按照Servlet的AddFilter插入顺序，Filter集合必须是按照插入的顺序保存，才能实现Filter有序执行，顾采用LinkedHashMap
+     */
     private final Map<String, NettyFilterRegistration> filters = new LinkedHashMap<>(8);
 
     private final Map<String, ServletContext> contexts = new HashMap<>(2);
@@ -96,7 +100,7 @@ public class NettyServletContext implements ServletContext {
     private Set<SessionTrackingMode> sessionTrackingModes;
     private InetSocketAddress serverAddress;
     private ResourceManager resourceManager;
-    private Map<String,RequestDispatcher> namedRequestDispatchers = new ConcurrentReferenceHashMap();
+    private Map<String, RequestDispatcher> namedRequestDispatchers = new ConcurrentReferenceHashMap();
 
     public ResourceManager getResourceManager() {
         return resourceManager;
@@ -111,13 +115,14 @@ public class NettyServletContext implements ServletContext {
      * path and resource loader.
      * <p>Registers a for the Servlet named
      * {@literal 'default'}.
+     *
      * @param resourceBasePath the root directory of the WAR (should not end with a slash)
-     * @param resourceLoader the ResourceLoader to use (or null for the default)
+     * @param resourceLoader   the ResourceLoader to use (or null for the default)
      * @param serverAddress
      */
-    public NettyServletContext(String resourceBasePath,String baseDir, ResourceLoader resourceLoader, ServerProperties serverProperties, InetSocketAddress serverAddress) {
+    public NettyServletContext(String resourceBasePath, String baseDir, ResourceLoader resourceLoader, ServerProperties serverProperties, InetSocketAddress serverAddress) {
         this.resourceLoader = (resourceLoader != null ? resourceLoader : new DefaultResourceLoader());
-        this.classLoader = (this.resourceLoader.getClassLoader() == null?ClassUtils.getDefaultClassLoader():this.resourceLoader.getClassLoader());
+        this.classLoader = (this.resourceLoader.getClassLoader() == null ? ClassUtils.getDefaultClassLoader() : this.resourceLoader.getClassLoader());
         this.resourceBasePath = resourceBasePath;
         this.contextPath = resourceBasePath;
         this.serverProperties = serverProperties;
@@ -126,13 +131,13 @@ public class NettyServletContext implements ServletContext {
 
     }
 
-    public void setDocBase(String docBase){
-        String workspace = '/' + (serverAddress == null || isLocalhost(serverAddress.getHostName())? "localhost": serverAddress.getHostName());
-        setDocBase(docBase,workspace);
+    public void setDocBase(String docBase) {
+        String workspace = '/' + (serverAddress == null || isLocalhost(serverAddress.getHostName()) ? "localhost" : serverAddress.getHostName());
+        setDocBase(docBase, workspace);
     }
 
-    public void setDocBase(String docBase,String workspace){
-        this.resourceManager = new ResourceManager(docBase,workspace,classLoader);
+    public void setDocBase(String docBase, String workspace) {
+        this.resourceManager = new ResourceManager(docBase, workspace, classLoader);
         this.resourceManager.mkdirs("/");
 
         /**process Netty TempFile And Attribute Info*/
@@ -155,9 +160,10 @@ public class NettyServletContext implements ServletContext {
     }
 
 
-    public static boolean isLocalhost(String host){
-        return "localhost".equalsIgnoreCase(host) || host.contains("0.0.0.0") ||  host.contains("127.0.0.1");
+    public static boolean isLocalhost(String host) {
+        return "localhost".equalsIgnoreCase(host) || host.contains("0.0.0.0") || host.contains("127.0.0.1");
     }
+
     protected static File createTempDir(String prefix) {
         try {
             File tempDir = File.createTempFile(prefix + ".", "");
@@ -165,16 +171,18 @@ public class NettyServletContext implements ServletContext {
             tempDir.mkdir();
             tempDir.deleteOnExit();
             return tempDir;
-        }catch (IOException ex) {
+        } catch (IOException ex) {
             throw new IllegalStateException(
                     "Unable to create tempDir. java.io.tmpdir is set to "
                             + System.getProperty("java.io.tmpdir"),
                     ex);
         }
     }
+
     /**
      * Build a full resource location for the given path, prepending the resource
      * base path of this {@code ServletContext}.
+     *
      * @param path the path as specified
      * @return the full resource path
      */
@@ -234,8 +242,8 @@ public class NettyServletContext implements ServletContext {
         return mimeTypes.get(extension).getMimeType();
     }
 
-    public void setMimeTypesElement(String extension,MimeMappings.Mapping mimeType){
-        this.mimeTypes.put(extension,mimeType);
+    public void setMimeTypesElement(String extension, MimeMappings.Mapping mimeType) {
+        this.mimeTypes.put(extension, mimeType);
     }
 
     @Override
@@ -276,8 +284,8 @@ public class NettyServletContext implements ServletContext {
     @Override
     @Deprecated
     public Enumeration<Servlet> getServlets() {
-        return Collections.enumeration(servlets.values().stream().map((item)->
-            item.getServlet()).collect(Collectors.toList()));
+        return Collections.enumeration(servlets.values().stream().map((item) ->
+                item.getServlet()).collect(Collectors.toList()));
     }
 
     @Override
@@ -350,8 +358,7 @@ public class NettyServletContext implements ServletContext {
         Assert.notNull(name, "Attribute name must not be null");
         if (value != null) {
             this.attributes.put(name, value);
-        }
-        else {
+        } else {
             this.attributes.remove(name);
         }
     }
@@ -361,6 +368,7 @@ public class NettyServletContext implements ServletContext {
         Assert.notNull(name, "Attribute name must not be null");
         this.attributes.remove(name);
     }
+
     @Override
     public String getServletContextName() {
         return servletContextName;
@@ -437,7 +445,7 @@ public class NettyServletContext implements ServletContext {
         servlets.put(servletName, servletRegistration);
 
         NettyFilterChain filterChain = NettyFilterChain.getInstance(servletRegistration, this.filters.entrySet().stream()
-                .map(entry->entry.getValue().getFilter()).collect(Collectors.toList()));
+                .map(entry -> entry.getValue().getFilter()).collect(Collectors.toList()));
         filterChain.setServletContext(this);
         this.namedRequestDispatchers.put(servletName, new NettyRequestDispatcher(filterChain));
 
@@ -451,6 +459,7 @@ public class NettyServletContext implements ServletContext {
 
     /**
      * This method always returns {@code null}.
+     *
      * @see javax.servlet.ServletContext#getServletRegistration(java.lang.String)
      */
     @Override
@@ -461,6 +470,7 @@ public class NettyServletContext implements ServletContext {
 
     /**
      * This method always returns an {@linkplain Collections#emptyMap empty map}.
+     *
      * @see javax.servlet.ServletContext#getServletRegistrations()
      */
     @Override
@@ -503,6 +513,7 @@ public class NettyServletContext implements ServletContext {
 
     /**
      * This method always returns {@code null}.
+     *
      * @see javax.servlet.ServletContext#getFilterRegistration(java.lang.String)
      */
     @Override
@@ -513,6 +524,7 @@ public class NettyServletContext implements ServletContext {
 
     /**
      * This method always returns an {@linkplain Collections#emptyMap empty map}.
+     *
      * @see javax.servlet.ServletContext#getFilterRegistrations()
      */
     @Override
@@ -548,6 +560,7 @@ public class NettyServletContext implements ServletContext {
     public void addServletMapping(String urlPattern, String name) {
         servletMappings.put(urlPattern, checkNotNull(name));
     }
+
     public void addFilterMapping(EnumSet<DispatcherType> dispatcherTypes, boolean isMatchAfter, String urlPattern) {
         // TODO 实现过滤器 后缀匹配
     }

@@ -47,13 +47,13 @@ public class ReflectionUtil {
                     String firstLetter = fieldName.substring(0, 1).toUpperCase(); // 获得和属性对应的getXXX()方法的名字
                     if ("set".equals(type)) {
                         String setMethodName = "set" + firstLetter + fieldName.substring(1); // 获得和属性对应的getXXX()方法
-                        Method setMethod = classType.getMethod(setMethodName, new Class[] { field.getType() }); // 调用原对象的getXXX()方法
-                        ret = setMethod.invoke(obj, new Object[] { fieldVal });
+                        Method setMethod = classType.getMethod(setMethodName, new Class[]{field.getType()}); // 调用原对象的getXXX()方法
+                        ret = setMethod.invoke(obj, new Object[]{fieldVal});
                     }
                     if ("get".equals(type)) {
                         String getMethodName = "get" + firstLetter + fieldName.substring(1); // 获得和属性对应的setXXX()方法的名字
-                        Method getMethod = classType.getMethod(getMethodName, new Class[] {});
-                        ret = getMethod.invoke(obj, new Object[] {});
+                        Method getMethod = classType.getMethod(getMethodName, new Class[]{});
+                        ret = getMethod.invoke(obj, new Object[]{});
                     }
                     return ret;
                 }
@@ -129,7 +129,7 @@ public class ReflectionUtil {
                 // 注意：如果这里的异常打印或者往外抛, 则就不会执行clazz = clazz.getSuperclass();
             }
         }
-        return (Field[]) fields.toArray(new Field[] {});
+        return (Field[]) fields.toArray(new Field[]{});
     }
 
     /**
@@ -155,14 +155,10 @@ public class ReflectionUtil {
     /**
      * 调用对象的方法,指定方法名参数列表类型以及参数列表
      *
-     * @param object
-     *            调用对象
-     * @param methodName
-     *            调用方法
-     * @param parameterTypes
-     *            参数类型集合
-     * @param parameters
-     *            参数列表集合
+     * @param object         调用对象
+     * @param methodName     调用方法
+     * @param parameterTypes 参数类型集合
+     * @param parameters     参数列表集合
      * @return
      * @throws InvocationTargetException
      */
@@ -182,6 +178,7 @@ public class ReflectionUtil {
         }
         return null;
     }
+
     /**
      * 打开属性的可访问权限.
      *
@@ -301,8 +298,7 @@ public class ReflectionUtil {
      * 如果 type == null 或者 == "" 或者  == " ",  则返回 null.
      * </pre>
      *
-     * @param type
-     *            java类名称.
+     * @param type java类名称.
      * @return String 基本类名称.
      */
     public static String getType(String type) {
@@ -333,15 +329,16 @@ public class ReflectionUtil {
             return null;
         }
     }
-    public static void setFieldValue(Object object, String fieldName, Object value){
+
+    public static void setFieldValue(Object object, String fieldName, Object value) {
 
         //根据 对象和属性名通过反射 调用上面的方法获取 Field对象
-        Field field = getDeclaredField(object, fieldName) ;
+        Field field = getDeclaredField(object, fieldName);
         //抑制Java对其的检查
-        field.setAccessible(true) ;
+        field.setAccessible(true);
         try {
             //将 object 中 field 所代表的值 设置为 value
-            field.set(object, value) ;
+            field.set(object, value);
         } catch (IllegalArgumentException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
