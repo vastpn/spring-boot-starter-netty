@@ -17,6 +17,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.math.BigDecimal;
+import java.net.URL;
 import java.nio.channels.FileChannel;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -41,9 +42,14 @@ import java.util.Optional;
  */
 @RestController
 @SpringBootApplication
-public class NettyServletWebApplication {
+public class NettyServletWebApplication_Back {
+
+    private static final URL BOOTSTRAP_URL = NettyServletWebApplication_Back.class.getResource(
+            "/application.yml");
     public static void main(String[] args) {
-        SpringApplication.run(NettyServletWebApplication.class, args);
+        System.getProperties().put("spring.config.location",BOOTSTRAP_URL);
+
+        SpringApplication.run(NettyServletWebApplication_Back.class, args);
 
     }
 
