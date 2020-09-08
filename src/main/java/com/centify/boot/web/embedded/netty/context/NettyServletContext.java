@@ -255,6 +255,8 @@ public class NettyServletContext implements ServletContext {
 
     @Override
     public RequestDispatcher getRequestDispatcher(String path) {
+
+        //TODO Match 匹配 （暂时支持多context-path获取并执行业务，下一版本调整）
         return this.namedRequestDispatchers.get(this.defaultServletName);
     }
 
@@ -361,7 +363,7 @@ public class NettyServletContext implements ServletContext {
     }
     @Override
     public String getServletContextName() {
-        return this.getClass().getSimpleName();
+        return servletContextName;
     }
 
     @Override
