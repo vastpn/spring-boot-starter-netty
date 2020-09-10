@@ -31,8 +31,8 @@ public class NettyServletChannelInitializer extends ChannelInitializer<SocketCha
     public NettyServletChannelInitializer(NettyEmbeddedProperties nettyCustom) {
         this.dispatcherServletHandler = DispatcherServletHandler.getInstance();
         this.nettyCustom = nettyCustom;
+        this.dispatcherServletHandler.setNettyProperties(nettyCustom);
     }
-
 
     @Override
     protected void initChannel(SocketChannel channel) throws Exception {

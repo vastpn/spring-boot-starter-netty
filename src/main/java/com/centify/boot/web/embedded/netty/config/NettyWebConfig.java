@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.AbstractJackson2HttpMessageConverter;
 import org.springframework.web.multipart.MultipartResolver;
 import org.springframework.web.multipart.commons.CommonsMultipartResolver;
 
@@ -142,14 +142,16 @@ public class NettyWebConfig {
         fastJsonConverter.setSupportedMediaTypes(supportedMediaTypes);
         LOGGER.info("[Container] Http JSON 解析类型：FastJSON");
         // 5.返回HttpMessageConverters对象
-        return new HttpMessageConverters(fastJsonConverter);
+        HttpMessageConverters jsonConverters = new HttpMessageConverters(fastJsonConverter);
+        converters.add(fastJsonConverter);
+        return jsonConverters;
     }
 
     private void removeJacksonConfigurer(List<HttpMessageConverter<?>> converters) {
         Iterator<HttpMessageConverter<?>> iterator = converters.iterator();
         while (iterator.hasNext()) {
             HttpMessageConverter<?> converter = iterator.next();
-            if (converter instanceof MappingJackson2HttpMessageConverter) {
+            if (converter instanceof AbstractJackson2HttpMessageConverter) {
                 iterator.remove();
             }
         }

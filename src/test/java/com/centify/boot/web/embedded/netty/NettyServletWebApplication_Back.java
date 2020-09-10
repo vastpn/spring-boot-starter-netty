@@ -41,6 +41,7 @@ import java.util.Optional;
  * <pre>
  */
 @RestController
+@RequestMapping(produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
 @SpringBootApplication
 public class NettyServletWebApplication_Back {
 
@@ -53,7 +54,7 @@ public class NettyServletWebApplication_Back {
 
     }
 
-    @RequestMapping(value = "/test")
+    @RequestMapping(value = "/test",produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public Map test(HttpServletRequest request, HttpServletResponse response) throws IOException {
 
         Map result = new HashMap();

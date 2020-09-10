@@ -1,5 +1,6 @@
 package com.centify.boot.web.embedded.netty.handler;
 
+import com.centify.boot.web.embedded.netty.config.NettyEmbeddedProperties;
 import com.centify.boot.web.embedded.netty.constant.NettyConstant;
 import com.centify.boot.web.embedded.netty.factory.NettyServletWebServerFactory;
 import com.centify.boot.web.embedded.netty.servlet.NettyHttpServletRequest;
@@ -39,6 +40,16 @@ import java.net.InetSocketAddress;
 public class DispatcherServletHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
     private static final Logger LOGGER = LoggerFactory.getLogger(DispatcherServletHandler.class);
 
+    private NettyEmbeddedProperties nettyProperties;
+
+    public NettyEmbeddedProperties getNettyProperties() {
+        return nettyProperties;
+    }
+
+    public void setNettyProperties(NettyEmbeddedProperties nettyProperties) {
+        this.nettyProperties = nettyProperties;
+    }
+
     private static class SingletonHolder {
 
         public final static DispatcherServletHandler handler = new DispatcherServletHandler();
@@ -71,6 +82,9 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<FullHt
             /**5、初始化ServletRequestStream、ServletOutputStream、ServletResponse、DispacherServlet对象*/
             NettyServletOutputStream outputStream = new NettyServletOutputStream(result);
             NettyHttpServletResponse servletResponse = new NettyHttpServletResponse(outputStream);
+            /**响应报文编码设置*/
+            servletResponse.setCharacterEncoding(nettyProperties.getUriEncoding().toString());
+
             NettyRequestDispatcher dispatcherServlet =
                     (NettyRequestDispatcher) NettyServletWebServerFactory.servletContext
                             .getRequestDispatcher(servletRequest.getRequestURI());
