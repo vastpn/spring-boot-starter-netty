@@ -143,7 +143,7 @@ public class NettyWebConfig {
         LOGGER.info("[Container] Http JSON 解析类型：FastJSON");
         // 5.返回HttpMessageConverters对象
         HttpMessageConverters jsonConverters = new HttpMessageConverters(fastJsonConverter);
-        converters.add(fastJsonConverter);
+        converters.add(0,fastJsonConverter);
         return jsonConverters;
     }
 

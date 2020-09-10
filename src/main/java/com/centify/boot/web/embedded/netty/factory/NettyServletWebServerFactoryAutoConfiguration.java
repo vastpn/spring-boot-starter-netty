@@ -40,7 +40,6 @@ import javax.servlet.ServletRequest;
 @ConditionalOnClass(ServletRequest.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @EnableConfigurationProperties({ServerProperties.class, NettyEmbeddedProperties.class})
-@Import({ServletWebServerFactoryAutoConfiguration.BeanPostProcessorsRegistrar.class})
 public class NettyServletWebServerFactoryAutoConfiguration {
 
     @Configuration(proxyBeanMethods = false)
