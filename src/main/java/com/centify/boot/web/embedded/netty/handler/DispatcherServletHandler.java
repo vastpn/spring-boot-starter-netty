@@ -112,7 +112,8 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<FullHt
             if (ctx.channel().isWritable()) {
                 ctx.writeAndFlush(fullHttpResponse).addListener(ChannelFutureListener.CLOSE);
             } else {
-                LOGGER.error("Netty IO 输出队列已满/channel非活跃状态，丢弃消息");
+                LOGGER.error("Netty IO 输出队列已满/channel非活跃状态，丢弃消息，防止Netty OOM");
+                throw new Exception("Netty IO 输出队列已满/channel非活跃状态，丢弃消息，防止Netty OOM");
             }
         } catch (Exception ex) {
             LOGGER.error(this.getClass().getName() + " 处理异常", ex);
