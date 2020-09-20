@@ -104,9 +104,9 @@ public class DispatcherServletHandler extends SimpleChannelInboundHandler<FullHt
             /**8、设置Response头信息*/
             fullHttpResponse.headers().setAll(servletResponse.getHeaders());
             fullHttpResponse.headers().set(HttpHeaderNames.CONTENT_LENGTH, result.readableBytes());
-            if (fullHttpResponse.headers().get(HttpHeaderNames.CONTENT_TYPE) == null) {
-                fullHttpResponse.headers().set(HttpHeaderNames.CONTENT_TYPE, MediaType.APPLICATION_JSON_UTF8_VALUE);
-            }
+//            if (fullHttpResponse.headers().get(HttpHeaderNames.CONTENT_TYPE) == null) {
+//                fullHttpResponse.headers().set(HttpHeaderNames.CONTENT_TYPE, MediaType.APPLICATION_JSON_UTF8_VALUE);
+//            }
 
             /**10、返回客户端并监听关闭，写入ByteBuf失败，不再重复写入，生产建议开启判断，防止IO缓存OOM*/
             if (ctx.channel().isWritable()) {
